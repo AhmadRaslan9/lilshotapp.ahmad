@@ -9,7 +9,7 @@ import { useProducts } from '../hooks/useProducts';
 import { CATEGORIES } from '../data/mockProducts';
 import { colors, radius, spacing, typography } from '../theme';
 
-const backgroundImg = require('../../assets/CoffeeShop.png');
+const backgroundImg = require('../assets/CoffeeShop.png');
 
 export default function ShopScreen() {
   const { products } = useProducts();

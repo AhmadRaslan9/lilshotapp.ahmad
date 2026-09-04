@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { colors, spacing } from '../../theme';
 
-const logo = require('../../../assets/Logolilshot1.png');
+const logo = require('../../assets/Logolilshot1.png');
 
 export default function AuthHeader({ compact }) {
   return (

@@ -7,7 +7,7 @@ import { BlurView } from 'expo-blur';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { colors, radius } from '../theme';
 
-const logoImg = require('../../assets/coffeecup.png');
+const logoImg = require('../assets/coffeecup.png');
 
 export const TABS = [
   { id: 'home', icon: 'home', lib: Ionicons, outline: 'home-outline' },

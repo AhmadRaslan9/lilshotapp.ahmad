@@ -8,7 +8,7 @@ import Avatar from '../components/ui/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { colors, radius, spacing, typography } from '../theme';
 
-const backgroundImg = require('../../assets/CoffeeShop.png');
+const backgroundImg = require('../assets/CoffeeShop.png');
 
 const MENU_ITEMS = [
   { id: '1', title: 'My Orders', icon: 'shopping-bag' },

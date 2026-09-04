@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useEntranceAnimation } from '../../hooks/useEntranceAnimation';
 import { colors, spacing } from '../../theme';
 
-const backgroundImg = require('../../../assets/CoffeeShop.png');
+const backgroundImg = require('../../assets/CoffeeShop.png');
 
 export default function SignInScreen({ onCancel, onAppleSignIn }) {
   const { signIn, authError, isFirebaseConfigured } = useAuth();

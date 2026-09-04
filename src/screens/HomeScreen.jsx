@@ -8,7 +8,7 @@ import TourCard from '../components/TourCard';
 import { useTours } from '../hooks/useTours';
 import { colors, spacing } from '../theme';
 
-const logoImg = require('../../assets/coffeecup.png');
+const logoImg = require('../assets/coffeecup.png');
 
 export default function HomeScreen() {
   const { tours } = useTours();

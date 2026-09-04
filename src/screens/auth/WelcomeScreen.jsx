@@ -7,7 +7,7 @@ import GlassButton from '../../components/ui/GlassButton';
 import { useEntranceAnimation } from '../../hooks/useEntranceAnimation';
 import { spacing } from '../../theme';
 
-const backgroundImg = require('../../../assets/CoffeeShop.png');
+const backgroundImg = require('../../assets/CoffeeShop.png');
 
 export default function WelcomeScreen({ onSignIn, onSignUp, onAppleSignIn }) {
   const { opacity, translateY } = useEntranceAnimation('welcome');
