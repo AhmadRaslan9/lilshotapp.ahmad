@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, transformWithEsbuild } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -42,6 +42,19 @@ function requireImagesPlugin() {
   };
 }
 
+// Expo distributes JSX in .js files. Transform it before Rollup parses imports,
+// including production builds (optimizeDeps only covers the dev server).
+function expoJsxPlugin() {
+  return {
+    name: 'expo-jsx',
+    enforce: 'pre',
+    transform(code, id) {
+      if (!/node_modules\/(?:expo-[^/]+|@expo\/[^/]+)\/.*\.js$/.test(id)) return null;
+      return transformWithEsbuild(code, id, { loader: 'jsx', jsx: 'automatic' });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const publicEnv = Object.fromEntries(
@@ -52,7 +65,7 @@ export default defineConfig(({ mode }) => {
   const isDev = mode !== 'production';
 
   return {
-    plugins: [react(), requireImagesPlugin()],
+    plugins: [expoJsxPlugin(), react(), requireImagesPlugin()],
     envPrefix: ['VITE_', 'EXPO_PUBLIC_'],
     optimizeDeps: {
       esbuildOptions: {

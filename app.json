@@ -12,6 +12,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [["expo-camera", {
+      "cameraPermission": "Allow LilShot to capture your coffee moments.",
+      "microphonePermission": false,
+      "recordAudioAndroid": false
+    }]],
     "ios": {
       "supportsTablet": true
     },
