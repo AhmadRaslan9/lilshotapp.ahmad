@@ -1,13 +1,12 @@
-// src/components/ui/GlassButton.js
-//
-// زر موحّد بديل عن ModernAnimatedButton (كانت مكررة داخل AssetExample
-// فقط ولا يمكن إعادة استخدامها في بقية الشاشات). يدعم 3 أنماط:
-// 'solid' (برتقالي معبأ)، 'glass' (زجاجي فاتح)، 'outline' (زجاجي شفاف
-// بحدود فقط) — وهي نفس الأنماط البصرية الثلاثة التي كانت موجودة يدوياً
-// في شاشة الدخول القديمة.
-
 import React, { useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableWithoutFeedback, ActivityIndicator, View } from 'react-native';
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableWithoutFeedback,
+  ActivityIndicator,
+  View,
+} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { colors, radius, typography } from '../../theme';
 
@@ -17,18 +16,37 @@ const VARIANTS = {
     borderColor: colors.primary,
     textColor: colors.textOnDark,
     blur: false,
+    pill: false,
   },
   glass: {
     background: 'rgba(255,255,255,0.22)',
     borderColor: colors.glassBorderStrong,
     textColor: colors.textOnDark,
     blur: true,
+    pill: false,
   },
   outline: {
     background: 'rgba(0,0,0,0.18)',
     borderColor: colors.glassBorder,
     textColor: colors.textOnDark,
     blur: true,
+    pill: false,
+  },
+  // شكل mockup التسجيل — حبة دواء إسبريسو
+  cta: {
+    background: '#1A1410',
+    borderColor: '#1A1410',
+    textColor: '#F6F1EA',
+    blur: false,
+    pill: true,
+  },
+  // زر Follow بالبروفايل
+  follow: {
+    background: '#FFF8F2',
+    borderColor: '#FFF8F2',
+    textColor: '#1A1410',
+    blur: false,
+    pill: true,
   },
 };
 
@@ -43,11 +61,22 @@ export default function GlassButton({
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const preset = VARIANTS[variant] || VARIANTS.glass;
+  const round = preset.pill ? 999 : radius.xl;
 
   const pressIn = () =>
-    Animated.spring(scale, { toValue: 0.96, friction: 6, tension: 260, useNativeDriver: true }).start();
+    Animated.spring(scale, {
+      toValue: 0.96,
+      friction: 6,
+      tension: 260,
+      useNativeDriver: true,
+    }).start();
   const pressOut = () =>
-    Animated.spring(scale, { toValue: 1, friction: 5, tension: 200, useNativeDriver: true }).start();
+    Animated.spring(scale, {
+      toValue: 1,
+      friction: 5,
+      tension: 200,
+      useNativeDriver: true,
+    }).start();
 
   const content = (
     <View style={styles.content}>
@@ -71,7 +100,7 @@ export default function GlassButton({
       <Animated.View
         style={[
           styles.button,
-          { transform: [{ scale }], opacity: disabled ? 0.5 : 1 },
+          { borderRadius: round, transform: [{ scale }], opacity: disabled ? 0.5 : 1 },
           style,
         ]}
       >
@@ -79,12 +108,30 @@ export default function GlassButton({
           <BlurView
             tint="light"
             intensity={40}
-            style={[styles.blurFill, { backgroundColor: preset.background, borderColor: preset.borderColor }]}
+            style={[
+              styles.fill,
+              {
+                borderRadius: round,
+                backgroundColor: preset.background,
+                borderColor: preset.borderColor,
+                minHeight: preset.pill ? 56 : undefined,
+              },
+            ]}
           >
             {content}
           </BlurView>
         ) : (
-          <View style={[styles.blurFill, { backgroundColor: preset.background, borderColor: preset.borderColor }]}>
+          <View
+            style={[
+              styles.fill,
+              {
+                borderRadius: round,
+                backgroundColor: preset.background,
+                borderColor: preset.borderColor,
+                minHeight: preset.pill ? 56 : undefined,
+              },
+            ]}
+          >
             {content}
           </View>
         )}
@@ -94,23 +141,14 @@ export default function GlassButton({
 }
 
 const styles = StyleSheet.create({
-  button: {
-    borderRadius: radius.xl,
-    overflow: 'hidden',
-  },
-  blurFill: {
-    borderRadius: radius.xl,
+  button: { overflow: 'hidden' },
+  fill: {
     paddingVertical: 16,
+    paddingHorizontal: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  text: {
-    ...typography.title,
-  },
+  content: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  text: { ...typography.title },
 });

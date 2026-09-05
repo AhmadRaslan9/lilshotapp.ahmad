@@ -1,121 +1,86 @@
-// src/components/TabBar.js
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { colors, radius } from '../theme';
+import { colors } from '../theme';
 
-const logoImg = require('../assets/coffeecup.png');
-
-export const TABS = [
-  { id: 'home', icon: 'home', lib: Ionicons, outline: 'home-outline' },
-  { id: 'favorites', icon: 'heart', lib: Ionicons, outline: 'heart-outline' },
-  { id: 'shop', icon: 'shopping-bag', lib: Feather, outline: 'shopping-bag' },
-  { id: 'profile', icon: 'person', lib: Ionicons, outline: 'person-outline' },
-];
-
-export default function TabBar({ activeTab, onChangeTab }) {
-  const activeIndex = TABS.findIndex((t) => t.id === activeTab);
-
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: withSpring(activeIndex * 48, { damping: 18, stiffness: 140, mass: 0.8 }),
-      },
-    ],
-  }));
+export default function TabBar({ activeTab, onChangeTab, onCompose }) {
+  const Item = ({ id, icon, label }) => {
+    const on = activeTab === id;
+    return (
+      <TouchableOpacity
+        style={[styles.item, on && styles.itemOn]}
+        onPress={() => onChangeTab(id)}
+        activeOpacity={0.8}
+      >
+        <Ionicons
+          name={icon}
+          size={22}
+          color={on ? colors.textOnDark : colors.textOnDarkFaint}
+        />
+        {on && label ? <Text style={styles.label}>{label}</Text> : null}
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <BlurView intensity={70} tint="dark" style={styles.pill}>
-        <Animated.View style={[styles.indicator, indicatorStyle]} />
+    <View style={styles.wrap} pointerEvents="box-none">
+      <BlurView intensity={50} tint="dark" style={styles.bar}>
+        <Item id="home" icon="home" label="Feed" />
+        <Item id="chats" icon="chatbubbles" label="Chats" />
 
-        {TABS.map((tab) => {
-          const IconComponent = tab.lib;
-          const isActive = activeTab === tab.id;
+        <TouchableOpacity
+          style={styles.plus}
+          onPress={onCompose || (() => onChangeTab('shop'))}
+          activeOpacity={0.85}
+        >
+          <Feather name="plus" size={22} color="#FFF8F2" />
+        </TouchableOpacity>
 
-          return (
-            <TouchableOpacity
-              key={tab.id}
-              style={styles.tabButton}
-              onPress={() => onChangeTab(tab.id)}
-              activeOpacity={0.7}
-            >
-              <IconComponent
-                name={isActive ? tab.icon : tab.outline}
-                size={21}
-                color={isActive ? colors.textOnDark : colors.textOnDarkFaint}
-              />
-            </TouchableOpacity>
-          );
-        })}
+        <Item id="profile" icon="person" label="Profile" />
       </BlurView>
-
-      <TouchableOpacity onPress={() => onChangeTab('shop')} activeOpacity={0.8}>
-        <BlurView intensity={80} tint="light" style={styles.shopButton}>
-          <Image source={logoImg} style={styles.shopIcon} contentFit="contain" />
-        </BlurView>
-      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrap: {
     position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    left: 0,
+    right: 0,
+    bottom: 22,
     alignItems: 'center',
   },
-  pill: {
+  bar: {
     flexDirection: 'row',
-    borderRadius: radius.pill,
+    alignItems: 'center',
+    gap: 6,
     padding: 6,
-    alignItems: 'center',
+    borderRadius: 999,
     overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: colors.glassBorder,
-    backgroundColor: colors.glassDark,
-  },
-  tabButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  indicator: {
-    position: 'absolute',
-    left: 6,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    backgroundColor: 'rgba(26, 20, 15, 0.72)',
     borderWidth: 1,
-    borderColor: colors.glassBorderStrong,
-    zIndex: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
-  shopButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    justifyContent: 'center',
+  item: {
+    minWidth: 48,
+    height: 48,
+    borderRadius: 24,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
+    justifyContent: 'center',
+    gap: 6,
   },
-  shopIcon: { width: 28, height: 28 },
+  itemOn: { backgroundColor: 'rgba(255,255,255,0.14)' },
+  label: { color: '#FFF8F2', fontWeight: '700', fontSize: 13 },
+  plus: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4,
+  },
 });

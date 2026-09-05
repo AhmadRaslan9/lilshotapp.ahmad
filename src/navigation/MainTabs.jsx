@@ -1,8 +1,6 @@
-// src/navigation/MainTabs.js
 import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { StyleSheet } from 'react-native';
 import TabBar from '../components/TabBar';
 import HomeScreen from '../screens/HomeScreen';
 import ShopScreen from '../screens/ShopScreen';
@@ -12,8 +10,8 @@ import { colors } from '../theme';
 
 const SCREENS = {
   home: HomeScreen,
+  chats: FavoritesScreen,
   shop: ShopScreen,
-  favorites: FavoritesScreen,
   profile: ProfileScreen,
 };
 
@@ -23,16 +21,15 @@ export default function MainTabs() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <Animated.View key={activeTab} entering={FadeIn.duration(200)} exiting={FadeOut.duration(120)} style={styles.flex}>
+      <View style={styles.flex}>
         <ActiveScreen />
-      </Animated.View>
-
+      </View>
       <TabBar activeTab={activeTab} onChangeTab={setActiveTab} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: '#120E0C' },
   flex: { flex: 1 },
 });
