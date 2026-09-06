@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Modal, View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TabBar from '../components/TabBar';
 import HomeScreen from '../screens/HomeScreen';
 import ShopScreen from '../screens/ShopScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { colors } from '../theme';
+import CameraScreen from '../screens/CameraScreen';
 
 const SCREENS = {
   home: HomeScreen,
-  chats: FavoritesScreen,
+  favorites: FavoritesScreen,
   shop: ShopScreen,
   profile: ProfileScreen,
 };
 
 export default function MainTabs() {
   const [activeTab, setActiveTab] = useState('home');
+  const [cameraOpen, setCameraOpen] = useState(false);
   const ActiveScreen = SCREENS[activeTab] || HomeScreen;
 
   return (
@@ -24,7 +25,10 @@ export default function MainTabs() {
       <View style={styles.flex}>
         <ActiveScreen />
       </View>
-      <TabBar activeTab={activeTab} onChangeTab={setActiveTab} />
+      <TabBar activeTab={activeTab} onChangeTab={setActiveTab} onOpenCamera={() => setCameraOpen(true)} />
+      <Modal visible={cameraOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setCameraOpen(false)}>
+        {cameraOpen && <CameraScreen onClose={() => setCameraOpen(false)} />}
+      </Modal>
     </SafeAreaView>
   );
 }
