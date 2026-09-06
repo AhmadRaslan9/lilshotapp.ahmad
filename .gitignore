@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local configuration and Expo generated state
+.env
+.env.*
+!.env.example
+.expo/

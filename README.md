@@ -1,16 +1,28 @@
-# React + Vite
+# LilShot ☕
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+تطبيق لمشاركة لحظات القهوة واكتشاف المقاهي في السعودية، يستهدف iPhone بحسابات مستخدمين ومقاهٍ واشتراكات Plus.
 
-Currently, two official plugins are available:
+## الحالة الحالية
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+المشروع نموذج React Native Web يعمل بواسطة Vite. نسخة iOS تحتاج تجهيز مدخل Native وتخزين الجلسة والبناء واختبار جهاز فعلي.
 
-## React Compiler
+على فرع `codex/prominent-camera-button`: زر كاميرا مركزي، طلب إذن، التقاط صورة ومعاينتها وإعادة التصوير. المعاينة مؤقتة ولا تنشر الصور في Firebase. معظم المحتوى تجريبي؛ الاشتراكات والمتاجر ولوحة الإدارة غير مكتملة.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## تشغيل الويب
 
-## Expanding the Oxlint configuration
+```sh
+npm ci
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+للبناء: `npm run build`. إعداد Firebase اختياري لمعاينة النموذج: انسخ `.env.example` إلى `.env` واملأ إعدادات تطبيق Firebase عند تجهيز المشروع. الكاميرا تحتاج سياقاً آمناً وإذن المستخدم.
+
+## وثائق المشروع
+
+- [المواصفات والقرارات المفتوحة](docs/PRODUCT_SPEC.md)
+- [حالة التنفيذ وخطة المراحل](docs/ROADMAP.md)
+- [خطوات التجهيز](docs/SETUP.md)
+- [سجل التغييرات والتحقق](docs/CHANGELOG.md)
+- [طلب الدمج الحالي #1](https://github.com/AhmadRaslan9/lilshotapp.ahmad/pull/1)
+
+التعديلات الحالية في فرع وطلب دمج مسودة؛ ليست مدمجة في `main` أو إصداراً جاهزاً للنشر.
