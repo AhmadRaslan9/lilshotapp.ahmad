@@ -1,269 +1,118 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  StyleSheet,
-} from 'react-native';
-import { Image } from 'expo-image';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
+import { coffee as c } from '../theme/coffee';
+import { previewShots, previewCafes, visibleShots, remainingLabel } from '../data/coffeePreview';
+import { useCoffeePreview } from '../context/CoffeePreviewContext';
+import { Photo, Pill, IconButton, DemoNote, Empty, ui } from '../components/coffee/Kit';
 
-const FILTERS = ['All', 'Groups', 'Personal', 'Work', 'Public'];
+export default function HomeScreen({ onCamera, onCafe, onNotifications }) {
+  const [filter, setFilter] = useState('all');
+  const [author, setAuthor] = useState(null);
+  const [now, setNow] = useState(Date.now());
+  const { liked, toggleLiked } = useCoffeePreview();
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
+  }, []);
+  const shots = visibleShots(previewShots, filter, author, now);
 
-const STORIES = [
-  {
-    id: 's1',
-    label: '12',
-    faces: [
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
-    ],
-  },
-  {
-    id: 's2',
-    label: '37',
-    faces: [
-      'https://images.unsplash.com/photo-1495474472287-4c7edcad34c4?w=200&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200&h=200&fit=crop',
-    ],
-  },
-  {
-    id: 's3',
-    label: '8',
-    faces: [
-      'https://images.unsplash.com/photo-1507003211169-0a1dd722bf5d?w=200&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
-    ],
-  },
-];
-
-const INITIAL_POSTS = [
-  {
-    id: 'p1',
-    handle: 'Maria Theodor',
-    time: '6h ago',
-    caption: 'Check out my pillow fight with beautiful views',
-    image:
-      'https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=1200',
-    avatar:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
-    liked: false,
-  },
-  {
-    id: 'p2',
-    handle: 'omar.shots',
-    time: '1d ago',
-    caption: 'Single origin pour-over, first light in the shop.',
-    image:
-      'https://images.unsplash.com/photo-1495474472287-4c7edcad34c4?q=80&w=1200',
-    avatar:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
-    liked: true,
-  },
-];
-
-export default function HomeScreen() {
-  const [filter, setFilter] = useState('All');
-  const [posts, setPosts] = useState(INITIAL_POSTS);
-  const [drafts, setDrafts] = useState({});
-
-  const toggleLike = (id) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked } : p))
-    );
-  };
-
-  return (
-    <View style={styles.page}>
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn}>
-          <Feather name="search" size={18} color="#FFF8F2" />
-        </TouchableOpacity>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Feed</Text>
-          <Feather name="chevron-down" size={16} color="#FFF8F2" />
-        </View>
-        <TouchableOpacity style={styles.iconBtn}>
-          <Ionicons name="notifications-outline" size={18} color="#FFF8F2" />
-          <View style={styles.bellDot}>
-            <Text style={styles.bellN}>6</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filters}
-      >
-        {FILTERS.map((f) => (
-          <TouchableOpacity key={f} onPress={() => setFilter(f)}>
-            <Text style={[styles.filter, filter === f && styles.filterOn]}>{f}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.feed}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.stories}
-        >
-          {STORIES.map((s) => (
-            <View key={s.id} style={styles.storyWrap}>
-              <View style={styles.storyRing}>
-                {s.faces.map((uri, i) => (
-                  <Image
-                    key={uri}
-                    source={{ uri }}
-                    style={[styles.storyFace, i === 1 && { marginLeft: -10 }]}
-                    contentFit="cover"
-                  />
-                ))}
-              </View>
-              <View style={styles.storyBadge}>
-                <Text style={styles.storyBadgeText}>{s.label}</Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-
-        {posts.map((post) => (
-          <View key={post.id} style={styles.card}>
-            <Image source={{ uri: post.image }} style={styles.cardImage} contentFit="cover" />
-            <View style={styles.cardOverlay}>
-              <View style={styles.authorRow}>
-                <Image source={{ uri: post.avatar }} style={styles.authorAv} contentFit="cover" />
-                <View>
-                  <Text style={styles.authorName}>@{post.handle}</Text>
-                  <Text style={styles.authorTime}>{post.time}</Text>
-                </View>
-              </View>
-              <Text style={styles.caption}>{post.caption}</Text>
-            </View>
-            <View style={styles.commentBar}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Add comment"
-                placeholderTextColor="rgba(255,248,242,0.55)"
-                value={drafts[post.id] || ''}
-                onChangeText={(t) => setDrafts((d) => ({ ...d, [post.id]: t }))}
-              />
-              <TouchableOpacity onPress={() => toggleLike(post.id)} hitSlop={8}>
-                <Ionicons
-                  name={post.liked ? 'heart' : 'heart-outline'}
-                  size={22}
-                  color={post.liked ? '#FF5A5A' : '#FFF8F2'}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+  return <ScrollView style={ui.page} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+    <View style={ui.between}>
+      <IconButton icon="camera-outline" label="صوّر لحظتك" onPress={onCamera} />
+      <Text style={s.brand}>lilshot<Text style={{ color: c.accent }}>.</Text></Text>
+      <IconButton icon="notifications-outline" label="الإشعارات" onPress={onNotifications} />
     </View>
-  );
+    <View style={s.intro}><Text style={s.title}>يومك يستاهل لقطة.</Text><Text style={ui.subtitle}>قهوة، وأصحاب، ولحظات حلوة.</Text></View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.stories}>
+      <TouchableOpacity style={s.story} onPress={onCamera} accessibilityRole="button" accessibilityLabel="أضف لحظة">
+        <View style={s.addStory}><Ionicons name="add" size={28} color={c.accent} /></View><Text style={s.storyName}>لحظتك</Text>
+      </TouchableOpacity>
+      {previewShots.map(shot => <TouchableOpacity key={shot.id} style={s.story}
+        accessibilityRole="button" accessibilityLabel={`لقطات ${shot.author}`}
+        accessibilityState={{ selected: author === shot.handle }}
+        onPress={() => { setAuthor(author === shot.handle ? null : shot.handle); setFilter('all'); }}>
+        <View style={[s.storyRing, author === shot.handle && s.selectedStory]}><Photo uri={shot.image} style={s.storyPhoto} /></View>
+        <Text style={[s.storyName, author === shot.handle && { color: c.accent }]}>{shot.author}</Text>
+      </TouchableOpacity>)}
+    </ScrollView>
+    <View style={ui.between}><View style={[ui.row, { gap: 7 }]}>
+      {[['all', 'لك'], ['moment', 'اللحظات'], ['post', 'البوستات']].map(([id, label]) =>
+        <Pill key={id} label={label} active={filter === id} onPress={() => setFilter(id)} />)}
+    </View></View>
+    <DemoNote>معاينة التصميم · اللقطات والإعجابات تجريبية</DemoNote>
+    {author && <Pill label="عرض الجميع ×" onPress={() => setAuthor(null)} />}
+    {shots.map(shot => {
+      const cafe = previewCafes.find(x => x.id === shot.cafeId);
+      const isLiked = liked.includes(shot.id);
+      const post = shot.kind === 'post';
+      return <View key={shot.id} style={[s.card, post && s.postCard]}>
+        <Photo uri={shot.image} label={`قهوة ${shot.author}`} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['rgba(34,23,17,0.12)', 'transparent', 'rgba(34,23,17,0.5)']} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
+        <View style={[ui.between, { alignItems: 'flex-start' }]}>
+          <BlurView intensity={35} tint="dark" style={s.authorGlass}>
+            <View style={s.avatar}><Text style={s.initial}>{shot.initial}</Text></View>
+            <View><View style={[ui.row, { gap: 4 }]}><Text style={s.author}>{shot.author}</Text>
+              {shot.plus && <Ionicons name="checkmark-circle" size={14} color="#B6DCED" accessibilityLabel="مشترك Plus" />}
+            </View><Text style={s.handle}>@{shot.handle}</Text></View>
+          </BlurView>
+          <View style={[s.type, post && s.postType]}>
+            <Ionicons name={post ? 'grid-outline' : 'time-outline'} size={13} color={post ? c.dark : c.onPhoto} />
+            <Text style={[s.typeText, post && { color: c.dark }]}>{post ? 'بوست' : remainingLabel(shot.expiresAt, now)}</Text>
+          </View>
+        </View>
+        <BlurView intensity={40} tint="dark" style={s.cardBottom}>
+          <Text style={s.caption}>{shot.caption}</Text>
+          <Text style={s.note}>{shot.note}</Text>
+          <View style={ui.between}>
+            <TouchableOpacity onPress={() => onCafe(cafe)} style={s.location} accessibilityRole="button" accessibilityLabel={`زيارة ${cafe.name}`}>
+              <Ionicons name="location-outline" size={15} color={c.onPhoto} /><Text style={s.locationText}>{cafe.name} · {cafe.city}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => toggleLiked(shot.id)} accessibilityRole="button"
+              accessibilityLabel={`إعجاب بلقطة ${shot.author}`} accessibilityState={{ selected: isLiked }} style={s.like}>
+              <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={22} color={isLiked ? '#FFB5AB' : c.onPhoto} />
+              <Text style={s.likes}>{shot.likes + (isLiked ? 1 : 0)}</Text>
+            </TouchableOpacity>
+          </View>
+          {!post && <View style={s.track}><View style={[s.progress, { width: `${Math.max(0, Math.min(100, (shot.expiresAt - now) / (shot.durationHours * 3600000) * 100))}%` }]} /></View>}
+        </BlurView>
+      </View>;
+    })}
+    {!shots.length && <Empty title="ما في لقطات بهالقسم" text="جرّب قسم ثاني أو ارجع لعرض الجميع." />}
+  </ScrollView>;
 }
 
-const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#120E0C' },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 6,
-    paddingBottom: 8,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#241C16',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  title: { color: '#FFF8F2', fontSize: 18, fontWeight: '700' },
-  bellDot: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    minWidth: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#E23D3D',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  bellN: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  filters: { paddingHorizontal: 18, gap: 18, paddingBottom: 8 },
-  filter: { color: '#6B5E54', fontSize: 14, fontWeight: '600' },
-  filterOn: { color: '#FFF8F2' },
-  feed: { paddingHorizontal: 16, paddingBottom: 120 },
-  stories: { gap: 14, paddingVertical: 12 },
-  storyWrap: { width: 72, height: 52 },
-  storyRing: {
-    width: 72,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: '#C97A3F',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    backgroundColor: '#241C16',
-  },
-  storyFace: { width: 36, height: 36, borderRadius: 18, marginLeft: -8 },
-  storyBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -2,
-    backgroundColor: '#E23D3D',
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  storyBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  card: {
-    borderRadius: 28,
-    overflow: 'hidden',
-    backgroundColor: '#1C1612',
-    marginBottom: 18,
-    minHeight: 420,
-  },
-  cardImage: { ...StyleSheet.absoluteFillObject },
-  cardOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 18,
-    paddingBottom: 70,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    minHeight: 360,
-  },
-  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  authorAv: { width: 28, height: 28, borderRadius: 14 },
-  authorName: { color: '#FFF8F2', fontSize: 13, fontWeight: '700' },
-  authorTime: { color: 'rgba(255,248,242,0.65)', fontSize: 11 },
-  caption: { color: '#FFF8F2', fontSize: 22, fontWeight: '800', lineHeight: 28 },
-  commentBar: {
-    position: 'absolute',
-    left: 14,
-    right: 14,
-    bottom: 14,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(20,16,12,0.55)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  commentInput: { flex: 1, color: '#FFF8F2', fontSize: 14 },
+const s = StyleSheet.create({
+  content: { padding: 18, paddingBottom: 144, gap: 18 },
+  brand: { color: c.text, fontSize: 29, fontWeight: '800', letterSpacing: -1.4 },
+  intro: { gap: 2, marginTop: 4 },
+  title: { color: c.text, fontSize: 24, lineHeight: 37, fontWeight: '700', textAlign: 'right' },
+  stories: { flexDirection: 'row-reverse', gap: 20, flexGrow: 1, justifyContent: 'flex-start', paddingVertical: 4 },
+  story: { alignItems: 'center', gap: 7 },
+  storyRing: { width: 66, height: 66, borderRadius: 33, borderWidth: 1.5, borderColor: '#C5A17D', padding: 4 },
+  selectedStory: { borderColor: c.dark, backgroundColor: c.cream },
+  storyPhoto: { width: '100%', height: '100%', borderRadius: 30 },
+  addStory: { width: 66, height: 66, borderRadius: 33, borderWidth: 1, borderStyle: 'dashed', borderColor: '#C5A17D', backgroundColor: c.raised, alignItems: 'center', justifyContent: 'center' },
+  storyName: { color: c.muted, fontSize: 11 },
+  card: { minHeight: 438, borderRadius: 30, overflow: 'hidden', padding: 12, justifyContent: 'space-between', backgroundColor: c.raised },
+  postCard: { borderRadius: 20, borderWidth: 2, borderColor: '#CEB595' },
+  authorGlass: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, borderRadius: 25, padding: 7, paddingLeft: 12, overflow: 'hidden', backgroundColor: 'rgba(50,37,32,0.4)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  avatar: { width: 33, height: 33, borderRadius: 17, backgroundColor: c.cream, alignItems: 'center', justifyContent: 'center' },
+  initial: { color: c.dark, fontWeight: '700' },
+  author: { color: c.onPhoto, fontSize: 13, fontWeight: '700' },
+  handle: { color: '#F0E5DD', fontSize: 9, textAlign: 'right', marginTop: 2 },
+  type: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: c.glass, flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 5 },
+  postType: { backgroundColor: c.cream },
+  typeText: { color: c.onPhoto, fontSize: 10, fontWeight: '600' },
+  cardBottom: { gap: 8, padding: 16, borderRadius: 23, overflow: 'hidden', backgroundColor: 'rgba(41,29,23,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', marginTop: 120 },
+  caption: { color: c.onPhoto, fontSize: 24, lineHeight: 36, fontWeight: '600', textAlign: 'right' },
+  note: { color: '#ECDFD3', fontSize: 12, textAlign: 'right', lineHeight: 20 },
+  location: { flexDirection: 'row-reverse', gap: 4, alignItems: 'center', minHeight: 44, flexShrink: 1 },
+  locationText: { color: c.onPhoto, fontSize: 11, flexShrink: 1 },
+  like: { minWidth: 63, minHeight: 44, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.13)' },
+  likes: { color: c.onPhoto, fontSize: 12 },
+  track: { height: 2, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'flex-end', overflow: 'hidden' },
+  progress: { height: 2, backgroundColor: '#E9C9A1' },
 });

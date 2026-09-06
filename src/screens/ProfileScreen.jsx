@@ -1,127 +1,91 @@
-// src/screens/ProfileScreen.js
-import React from 'react';
-import { View, Text, ImageBackground, TouchableOpacity, ScrollView, Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import GlassCard from '../components/ui/GlassCard';
-import Avatar from '../components/ui/Avatar';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { colors, radius, spacing, typography } from '../theme';
+import { coffee as c } from '../theme/coffee';
+import { ui, Photo, Button, IconButton, Empty, Sheet } from '../components/coffee/Kit';
 
-const backgroundImg = require('../assets/CoffeeShop.png');
+export default function ProfileScreen({ onCamera, onPlus }) {
+  const { user, signOut, authError } = useAuth();
+  const [tab, setTab] = useState('moment');
+  const [settings, setSettings] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const name = user?.displayName || 'صديق القهوة';
 
-const MENU_ITEMS = [
-  { id: '1', title: 'My Orders', icon: 'shopping-bag' },
-  { id: '2', title: 'Payment Methods', icon: 'credit-card' },
-  { id: '3', title: 'Delivery Address', icon: 'map-pin' },
-  { id: '4', title: 'Settings', icon: 'sliders' },
-];
-
-export default function ProfileScreen() {
-  const { user, signOut, isFirebaseConfigured } = useAuth();
-
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Guest';
-  const email = user?.email || (isFirebaseConfigured ? 'Not signed in' : 'Demo mode — Firebase not connected');
-
-  return (
-    <View style={styles.container}>
-      <ImageBackground source={backgroundImg} style={styles.background} resizeMode="cover">
-        <SafeAreaView style={styles.safeArea}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Profile</Text>
-            </View>
-
-            <View style={styles.section}>
-              <GlassCard tone="dark" intensity={75} radius={radius.xxxl} style={styles.profileCard}>
-                <Avatar name={displayName} />
-                <Text style={styles.userName}>{displayName}</Text>
-                <Text style={styles.userEmail}>{email}</Text>
-
-                <TouchableOpacity>
-                  <GlassCard tone="light" radius={radius.md} style={styles.editButton}>
-                    <Feather name="edit-2" size={14} color={colors.textOnDark} />
-                    <Text style={styles.editText}>Edit Profile</Text>
-                  </GlassCard>
-                </TouchableOpacity>
-              </GlassCard>
-            </View>
-
-            <View style={styles.section}>
-              <GlassCard tone="dark" radius={radius.xxl} style={styles.menuCard}>
-                {MENU_ITEMS.map((item, index) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[styles.menuItem, index !== MENU_ITEMS.length - 1 && styles.menuItemBorder]}
-                  >
-                    <View style={styles.menuLeft}>
-                      <GlassCard tone="light" radius={radius.md} style={styles.menuIcon}>
-                        <Feather name={item.icon} size={18} color={colors.textOnDark} />
-                      </GlassCard>
-                      <Text style={styles.menuTitle}>{item.title}</Text>
-                    </View>
-                    <Feather name="chevron-right" size={20} color={colors.textOnDarkFaint} />
-                  </TouchableOpacity>
-                ))}
-              </GlassCard>
-            </View>
-
-            <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-              <GlassCard tone="dark" radius={radius.lg} style={styles.logoutInner}>
-                <Feather name="log-out" size={18} color={colors.danger} />
-                <Text style={styles.logoutText}>Log Out</Text>
-              </GlassCard>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </ImageBackground>
+  return <View style={ui.page}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+    <View style={s.cover}>
+      <Photo uri={require('../assets/CoffeeShop.png')} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(45,30,20,0.3)', 'rgba(45,30,20,0.04)', 'rgba(45,30,20,0.3)']} style={StyleSheet.absoluteFill} />
+      <View style={s.coverTop}><IconButton glass icon="settings-outline" label="إعدادات الحساب" onPress={() => setSettings(true)} /><Text style={s.coverLogo}>lilshot.</Text></View>
     </View>
-  );
+    <View style={s.body}>
+      <View style={s.avatar}>{user?.photoURL ? <Photo uri={user.photoURL} label="صورة حسابك" style={s.avatarPhoto} /> : <Text style={s.initial}>{Array.from(name)[0]}</Text>}</View>
+      <Text style={s.name}>{name}</Text>
+      <Text style={s.bio}>كل كوب، حكاية جديدة.</Text>
+      <View style={s.status}><View style={s.statusDot} /><Text style={s.statusText}>لحظات تُلتقط الآن · 8 ساعات</Text></View>
+      <View style={s.stats}>{[['اللحظات', 'camera-outline'], ['المتابعون', 'people-outline'], ['النقاط', 'sparkles-outline']].map(([label], i) =>
+        <View key={label} style={[s.stat, i > 0 && s.statDivider]}><Text style={s.statValue}>—</Text><Text style={s.statLabel}>{label}</Text></View>)}
+      </View>
+      <Text style={s.waiting}>إحصاءاتك تظهر مع تفعيل النشر والتفاعل</Text>
+      <View style={s.actions}><View style={{ flex: 1 }}><Button label="صوّر لحظتك" onPress={onCamera} icon="camera-outline" /></View><IconButton icon="settings-outline" label="فتح إعدادات الحساب" onPress={() => setSettings(true)} style={{ width: 52, height: 52, borderRadius: 26 }} /></View>
+      <TouchableOpacity onPress={onPlus} accessibilityRole="button" accessibilityLabel="اكتشف مزايا Plus" style={s.plus}>
+        <View style={s.plusIcon}><Ionicons name="sparkles-outline" color={c.accent} size={24} /></View>
+        <View style={{ flex: 1, gap: 4 }}><Text style={s.plusName}>lilshot plus</Text><Text style={s.plusTag}>مساحة أكبر للحظاتك الحلوة</Text></View>
+        <Ionicons name="arrow-back" size={20} color={c.accent} />
+      </TouchableOpacity>
+      <View style={s.tabs}>{[['moment', 'time-outline', 'اللحظات'], ['post', 'grid-outline', 'البوستات']].map(([id, icon, label]) =>
+        <TouchableOpacity key={id} onPress={() => setTab(id)} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: tab === id }} style={[s.tab, tab === id && s.activeTab]}>
+          <Ionicons name={icon} size={20} color={tab === id ? c.dark : c.muted} /><Text style={[s.tabText, tab === id && { color: c.dark }]}>{label}</Text>
+        </TouchableOpacity>)}
+      </View>
+      <View style={s.galleryEmpty}>
+        <View style={s.emptyFrames} pointerEvents="none"><View style={[s.frame, { transform: [{ rotate: '-9deg' }] }]} /><View style={[s.frame, s.frontFrame]}><Ionicons name={tab === 'moment' ? 'camera-outline' : 'images-outline'} size={34} color="#B39377" /></View></View>
+        <Empty icon={null} title={tab === 'moment' ? 'أول لحظة، بداية حكاية' : 'للقطات اللي تستاهل تبقى'}
+          text={tab === 'moment' ? 'هذه مساحتك لصور القهوة. جرّب الكاميرا؛ نشر الصور يتوفر قريباً.' : 'بوستات Plus تظهر هنا أثناء الاشتراك، وتُخفى عند انتهائه حتى التجديد.'}
+          action={tab === 'moment' ? undefined : 'تعرّف على Plus'} onAction={onPlus} />
+      </View>
+    </View>
+  </ScrollView>
+    <Sheet visible={settings} onClose={() => setSettings(false)} title="إعدادات الحساب">
+      <View style={ui.panel}><Text style={ui.heading}>{name}</Text><Text style={[ui.subtitle, { writingDirection: 'ltr' }]}>{user?.email}</Text></View>
+      <View style={ui.panel}><View style={ui.row}><Ionicons name="lock-closed-outline" size={20} color={c.accent} /><Text style={ui.heading}>خصوصية الحساب</Text></View><Text style={ui.subtitle}>الحساب العام والخاص وقبول طلبات المتابعة تتوفر مع إطلاق المتابعة.</Text></View>
+      {authError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'right' }}>تعذّر تسجيل الخروج. جرّب مرة أخرى.</Text>}
+      <Button label={busy ? 'جارٍ تسجيل الخروج…' : 'تسجيل الخروج'} secondary disabled={busy} icon="log-out-outline" onPress={async () => { if (busy) return; setBusy(true); try { await signOut(); } finally { setBusy(false); } }} />
+    </Sheet>
+  </View>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  background: { flex: 1, width: '100%', height: '100%' },
-  safeArea: { flex: 1 },
-  scrollContent: { paddingBottom: 30 },
-  header: {
-    paddingHorizontal: spacing.xxl,
-    marginTop: Platform.OS === 'android' ? 20 : 10,
-    marginBottom: spacing.lg,
-  },
-  headerTitle: { ...typography.h2, color: colors.textOnDark },
-  section: { paddingHorizontal: spacing.xxl, marginBottom: spacing.xl },
-  profileCard: { alignItems: 'center', padding: spacing.xxl },
-  userName: { fontSize: 22, fontWeight: '800', color: colors.textOnDark, marginTop: spacing.md },
-  userEmail: { fontSize: 13, color: colors.textOnDarkMuted, marginTop: 2, marginBottom: spacing.lg },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    gap: 6,
-  },
-  editText: { color: colors.textOnDark, fontSize: 13, fontWeight: '600' },
-  menuCard: { paddingVertical: spacing.sm },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg + 2,
-    paddingVertical: spacing.md + 2,
-  },
-  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.1)' },
-  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md + 2 },
-  menuIcon: { padding: spacing.sm },
-  menuTitle: { fontSize: 15, fontWeight: '600', color: colors.textOnDark },
-  logoutButton: { marginHorizontal: spacing.xxl, borderRadius: radius.lg, overflow: 'hidden' },
-  logoutInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md + 2,
-    gap: spacing.sm,
-    borderColor: 'rgba(225, 88, 75, 0.4)',
-  },
-  logoutText: { color: colors.danger, fontSize: 16, fontWeight: '700' },
+const s = StyleSheet.create({
+  content: { paddingBottom: 144 },
+  cover: { height: 196, margin: 10, marginBottom: 0, borderRadius: 27, overflow: 'hidden', backgroundColor: c.raised },
+  coverTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },
+  coverLogo: { color: c.onPhoto, fontSize: 22, fontWeight: '700', letterSpacing: -1 },
+  body: { paddingHorizontal: 22, marginTop: -47, alignItems: 'center', gap: 12 },
+  avatar: { width: 94, height: 94, borderRadius: 47, backgroundColor: c.cream, borderWidth: 5, borderColor: c.bg, alignItems: 'center', justifyContent: 'center' },
+  avatarPhoto: { width: 84, height: 84, borderRadius: 42 },
+  initial: { color: c.accent, fontSize: 37, fontWeight: '600' },
+  name: { color: c.text, fontSize: 27, fontWeight: '700', textAlign: 'center', marginTop: 2 },
+  bio: { color: c.muted, fontSize: 13, textAlign: 'center' },
+  status: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: c.raised, borderRadius: 16 },
+  statusDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: c.accent },
+  statusText: { color: c.accent, fontSize: 10 },
+  stats: { flexDirection: 'row-reverse', alignSelf: 'stretch', marginTop: 10, paddingVertical: 7 },
+  stat: { flex: 1, alignItems: 'center', gap: 5 },
+  statDivider: { borderRightWidth: 1, borderColor: c.line },
+  statValue: { color: c.text, fontSize: 26, fontWeight: '600' },
+  statLabel: { color: c.muted, fontSize: 11 },
+  waiting: { color: c.muted, fontSize: 10, textAlign: 'center', marginBottom: 6 },
+  actions: { alignSelf: 'stretch', flexDirection: 'row-reverse', gap: 10 },
+  plus: { alignSelf: 'stretch', flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: c.cream, borderRadius: 24, padding: 17, gap: 13, marginVertical: 6 },
+  plusIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#FAF5EC', alignItems: 'center', justifyContent: 'center' },
+  plusName: { color: c.dark, fontSize: 18, fontWeight: '700', textAlign: 'right' },
+  plusTag: { color: c.accent, fontSize: 11, textAlign: 'right' },
+  tabs: { flexDirection: 'row-reverse', alignSelf: 'stretch', borderBottomWidth: 1, borderColor: c.line },
+  tab: { flex: 1, minHeight: 52, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 8, borderBottomWidth: 2, borderColor: 'transparent' },
+  activeTab: { borderBottomColor: c.dark },
+  tabText: { color: c.muted, fontSize: 12, fontWeight: '600' },
+  galleryEmpty: { alignSelf: 'stretch', paddingTop: 30 },
+  emptyFrames: { height: 120, width: 128, alignSelf: 'center' },
+  frame: { position: 'absolute', left: 2, top: 0, width: 89, height: 112, borderRadius: 17, borderWidth: 1, borderColor: '#DCCDBC', backgroundColor: '#EEE5D9' },
+  frontFrame: { left: 32, top: 8, backgroundColor: '#FBF7EF', transform: [{ rotate: '7deg' }], alignItems: 'center', justifyContent: 'center' },
 });

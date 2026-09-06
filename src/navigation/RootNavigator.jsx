@@ -3,7 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import AuthNavigator from '../screens/auth/AuthNavigator';
 import MainTabs from './MainTabs';
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme';
+import { coffee as c } from '../theme/coffee';
 
 export default function RootNavigator() {
   const { isAuthenticated, initializing, isFirebaseConfigured } = useAuth();
@@ -11,7 +11,7 @@ export default function RootNavigator() {
   if (initializing && isFirebaseConfigured) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={c.accent} accessibilityLabel="جارٍ فتح LilShot" />
       </View>
     );
   }
@@ -24,6 +24,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: c.bg,
   },
 });
