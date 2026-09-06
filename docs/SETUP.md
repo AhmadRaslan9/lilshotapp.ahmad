@@ -1,37 +1,50 @@
 # خطوات التجهيز
 
+## الوضع المؤكد — 2026-09-06
+
+- لدى أحمد حساب Expo، ولا يوجد Mac أو عضوية Apple Developer.
+- مشروع Firebase موجود: `lilshot-dbfe1` (الاسم lilshot).
+- إعدادات JavaScript SDK المرسلة من صاحب المشروع مضمّنة في `src/services/firebase/clientConfig.js`.
+- الصورة تعرض Spark وتطبيق ويب باسم `lilshot-admin`. اسم التسجيل لا يمنح التطبيق صلاحيات إدارة.
+- تم تجهيز تهيئة Auth وFirestore وStorage في الكود؛ لم يُثبت اتصال حي أو إنشاء قاعدة أو bucket أو قواعد أمان من خلال هذه الخطوة.
+
 ## المطلوب من أحمد الآن
 
-1. جهّز حساباً في [Expo](https://expo.dev/signup) للتجارب والبناء، أو استخدم فريقك الموجود.
-2. افتح [Firebase Console](https://console.firebase.google.com/) وأخبرنا هل لديك مشروع قائم. إن وجد، أرسل اسمه أو Project ID ولا تنشئ نسخة مكررة. إن لم يوجد، أنشئ مشروع تطوير باسم واضح مثل LilShot Dev وأرسل المعرّف الذي اختاره Firebase.
-3. أخبرنا هل لديك Mac وعضوية Apple Developer مدفوعة أم لا، لتحديد مسار تجربة iPhone وTestFlight. لا حاجة لشراء خدمات إضافية قبل تحديد المسار.
+افتح Firebase Console → Authentication → Sign-in method. تأكد من تفعيل Email/Password ثم Save، وأرسل صورة قائمة طرق الدخول للتأكد من الحالة. لا حاجة لتفعيل تسجيل الدخول برابط البريد في هذه المرحلة.
 
-لا تشارك كلمات المرور أو service account أو مفاتيح Apple الخاصة. أي وصول لفريق العمل يُجهّز بدعوة وصلاحيات مناسبة عند الحاجة.
+لا تشارك كلمات المرور أو مفاتيح service account أو مفاتيح Apple الخاصة.
 
-## معاينة الويب على الكمبيوتر
+## تشغيل معاينة الويب
 
 ```sh
 npm ci
-cp .env.example .env
 npm run dev
 ```
 
-ملء `.env` اختياري للواجهات التجريبية. عند تجهيز Firebase نسجّل تطبيقاً للحصول على إعدادات JavaScript SDK ونملأ المتغيرات الست. لا نستخدم Admin SDK في العميل. قيم EXPO_PUBLIC تُضمّن في التطبيق؛ الحماية تعتمد على القواعد. إضافة القيم لا تنشئ قواعد الأمان أو وظائف الحذف.
+لا تحتاج ملف بيئة لاستخدام إعدادات المشروع المضمّنة. إذا احتجت مشروعاً آخر، انسخ `.env.example` إلى `.env` واملأ القيم الست المطلوبة كاملة؛ القيم الناقصة تُرفض لتجنب خلط مشروعين. القيم الاختيارية تخص المشروع البديل فقط. إعدادات العميل عامة وتُضمّن في الحزمة؛ قواعد الأمان تتحكم بالوصول.
 
-`npm start` يشغّل Vite والويب. خطوات iPhone ليست جاهزة بعد؛ لا نفترض أن Expo Go الحالي يدعم SDK 51 بالمستودع. سنجهّز بناء تطوير متوافق ومدخل Native وتخزين الجلسة ثم نوثق أمر البناء المجرب.
+تستخدم الشاشات الحالية Firebase Auth عند إدخال البريد وكلمة المرور، ويذهب Start now إلى التسجيل بدلاً من الدخول التجريبي التلقائي. تفعيل مزود البريد وصحة القواعد لم يُتحقق منهما حياً. الموجز والعديد من الشاشات ما زالت تجريبية؛ لا رفع صور بعد. وجود databaseURL وmeasurementId في الإعداد لا يشغّل Realtime Database أو Analytics.
+
+`npm start` يشغّل الويب. تجهيز Native ونسخة Expo متوافقة ما زال مطلوباً قبل تجربة Expo Go. بناء iPhone مستقل عبر EAS يمكن عمله دون Mac لكنه يحتاج عضوية Apple Developer لتوقيع نسخة الجهاز. لا نطلب شراء العضوية الآن.
+
+Cloud Storage يحتاج خطة Blaze حسب متطلبات Firebase الحالية. نجهّز قواعد التخزين وحدود الرفع قبل تفعيل الفوترة واختبار الصور الفعلي.
+
+## التحقق
+
+```sh
+node --test tests/firebase-config.test.mjs
+npm run build
+```
+
+اختبارات اختيار الإعداد محلية ولا تسجّل مستخدمين أو ترسل رسائل أو تكتب في Firebase. لا تعادل اختبار تسجيل دخول فعلي أو تحققاً من أمان القواعد.
 
 ## عمل المطور التالي
 
-- تجهيز مدخل iOS والاعتماديات والبناء مع الحفاظ على معاينة الويب.
-- تثبيت bundleIdentifier بعد تحديد الحساب المالك.
-- ربط بيئة Firebase للتطوير، تخزين الجلسة وقواعد الوصول.
-- اختبار الكاميرا على الجهاز، ثم تسجيل الدخول، ثم نشر اللقطات.
+تجهيز Native والجلسة، قواعد وصول مختبرة، ثم تسجيل الدخول على الجهاز ورفع اللقطات ودورة حذفها. ما زال Apple Sign In والاشتراكات بحاجة تنفيذ وإعداد مستقلين.
 
 ## المراجع الرسمية
 
-- [Expo: إعداد البيئة](https://docs.expo.dev/get-started/set-up-your-environment/)
-- [Expo: بناء التطوير](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Firebase: إعداد JavaScript SDK](https://firebase.google.com/docs/web/setup)
-- [Apple: التسجيل في برنامج المطور](https://developer.apple.com/programs/enroll/)
-
-التسجيل المجاني لدى Apple يختلف عن عضوية Developer Program المستخدمة للتوزيع وTestFlight؛ نحدد توقيت تجهيزها مع مسار البناء.
+- [إعداد Firebase JavaScript SDK](https://firebase.google.com/docs/web/setup)
+- [تفعيل البريد وكلمة المرور](https://firebase.google.com/docs/auth/web/password-auth)
+- [بناء iOS عبر EAS](https://docs.expo.dev/tutorial/eas/ios-development-build-for-devices/)
+- [متطلبات Storage](https://firebase.google.com/docs/storage/faqs-storage-changes-announced-sept-2024)

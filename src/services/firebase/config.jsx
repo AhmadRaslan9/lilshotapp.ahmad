@@ -1,65 +1,40 @@
-// src/services/firebase/config.js
-//
-// تهيئة Firebase للتطبيق. القيم تُقرأ من متغيرات البيئة العامة الخاصة
-// بـ Expo (كل متغير يبدأ بـ EXPO_PUBLIC_ يتم تضمينه تلقائياً في الحزمة
-// عند البناء - لا حاجة لأي مكتبة إضافية مثل react-native-dotenv).
-//
-// خطوات الربط الفعلي:
-// 1) أنشئ مشروع Firebase من console.firebase.google.com
-// 2) فعّل Authentication (Email/Password) و Firestore Database
-// 3) انسخ ملف .env.example إلى .env واملأ القيم من إعدادات المشروع
-//
-// ملاحظة: هذا المشروع يعمل كتطبيق ويب (عبر Vite + react-native-web)،
-// لذلك نستخدم آلية التخزين الخاصة بالمتصفح (browserLocalPersistence)
-// بدل getReactNativePersistence الخاصة بتطبيقات الموبايل الأصلية.
-//
-// إلى أن يتم تعبئة القيم، تبقى دوال auth.js و firestore.js تعمل بوضع
-// آمن (تُطلق خطأً واضحاً) بدل تعطيل التطبيق بالكامل عند التشغيل بدون Firebase.
-
+// Current Vite/web entry uses browser persistence. Native persistence is a
+// separate iOS setup task. Firebase initialization does not provision services.
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import {
-  initializeAuth,
-  getAuth,
-  browserLocalPersistence,
-} from 'firebase/auth';
+import { initializeAuth, getAuth, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { resolveFirebaseConfig } from './clientConfig.js';
 
-const firebaseConfig = {
+export const firebaseConfig = resolveFirebaseConfig({
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-};
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
+});
 
-export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey && firebaseConfig.projectId
-);
+// Means client configuration is present, not that a live connection was verified.
+export const isFirebaseConfigured = true;
 
-let app;
+const app = getApps().some((entry) => entry.name === '[DEFAULT]')
+  ? getApp()
+  : initializeApp(firebaseConfig);
+
 let auth;
-let db;
-
-if (isFirebaseConfigured) {
-  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
-  try {
-    auth = initializeAuth(app, {
-      persistence: browserLocalPersistence,
-    });
-  } catch (e) {
-    // initializeAuth تُطلق خطأً إذا استُدعيت أكثر من مرة (Fast Refresh)
-    auth = getAuth(app);
-  }
-
-  db = getFirestore(app);
-} else {
-  // eslint-disable-next-line no-console
-  console.warn(
-    '[firebase] لم يتم ضبط متغيرات البيئة بعد — راجع .env.example. ' +
-      'التطبيق سيعمل ببيانات تجريبية محلية إلى حين الربط.'
-  );
+try {
+  auth = initializeAuth(app, { persistence: browserLocalPersistence });
+} catch (error) {
+  // Reuse Auth during hot reload; do not hide unrelated initialization errors.
+  if (error.code !== 'auth/already-initialized') throw error;
+  auth = getAuth(app);
 }
 
-export { app, auth, db };
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Realtime Database and Analytics are not started merely because config has IDs.
+export { app, auth, db, storage };
