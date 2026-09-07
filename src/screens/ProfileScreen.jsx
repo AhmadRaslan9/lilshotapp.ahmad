@@ -3,15 +3,18 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { useProfile } from '../context/ProfileContext';
 import { coffee as c } from '../theme/coffee';
 import { ui, Photo, Button, IconButton, Empty, Sheet } from '../components/coffee/Kit';
 
 export default function ProfileScreen({ onCamera, onPlus }) {
   const { user, signOut, authError } = useAuth();
+  const { profile } = useProfile();
   const [tab, setTab] = useState('moment');
   const [settings, setSettings] = useState(false);
   const [busy, setBusy] = useState(false);
-  const name = user?.displayName || 'صديق القهوة';
+  const name = profile?.displayName || user?.displayName || 'صديق القهوة';
+  const stats = [profile?.momentsCount || 0, profile?.followersCount || 0, profile?.points || 0];
 
   return <View style={ui.page}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={s.cover}>
@@ -22,10 +25,11 @@ export default function ProfileScreen({ onCamera, onPlus }) {
     <View style={s.body}>
       <View style={s.avatar}>{user?.photoURL ? <Photo uri={user.photoURL} label="صورة حسابك" style={s.avatarPhoto} /> : <Text style={s.initial}>{Array.from(name)[0]}</Text>}</View>
       <Text style={s.name}>{name}</Text>
-      <Text style={s.bio}>كل كوب، حكاية جديدة.</Text>
+      <Text style={s.username}>@{profile?.username || 'lilshot'}</Text>
+      <Text style={s.bio}>{profile?.bio || 'كل كوب، حكاية جديدة.'}</Text>
       <View style={s.status}><View style={s.statusDot} /><Text style={s.statusText}>لحظات تُلتقط الآن · 8 ساعات</Text></View>
       <View style={s.stats}>{[['اللحظات', 'camera-outline'], ['المتابعون', 'people-outline'], ['النقاط', 'sparkles-outline']].map(([label], i) =>
-        <View key={label} style={[s.stat, i > 0 && s.statDivider]}><Text style={s.statValue}>—</Text><Text style={s.statLabel}>{label}</Text></View>)}
+        <View key={label} style={[s.stat, i > 0 && s.statDivider]}><Text style={s.statValue}>{stats[i]}</Text><Text style={s.statLabel}>{label}</Text></View>)}
       </View>
       <Text style={s.waiting}>إحصاءاتك تظهر مع تفعيل النشر والتفاعل</Text>
       <View style={s.actions}><View style={{ flex: 1 }}><Button label="صوّر لحظتك" onPress={onCamera} icon="camera-outline" /></View><IconButton icon="settings-outline" label="فتح إعدادات الحساب" onPress={() => setSettings(true)} style={{ width: 52, height: 52, borderRadius: 26 }} /></View>
@@ -49,7 +53,7 @@ export default function ProfileScreen({ onCamera, onPlus }) {
   </ScrollView>
     <Sheet visible={settings} onClose={() => setSettings(false)} title="إعدادات الحساب">
       <View style={ui.panel}><Text style={ui.heading}>{name}</Text><Text style={[ui.subtitle, { writingDirection: 'ltr' }]}>{user?.email}</Text></View>
-      <View style={ui.panel}><View style={ui.row}><Ionicons name="lock-closed-outline" size={20} color={c.accent} /><Text style={ui.heading}>خصوصية الحساب</Text></View><Text style={ui.subtitle}>الحساب العام والخاص وقبول طلبات المتابعة تتوفر مع إطلاق المتابعة.</Text></View>
+      <View style={ui.panel}><View style={ui.row}><Ionicons name="lock-closed-outline" size={20} color={c.accent} /><Text style={ui.heading}>خصوصية الحساب</Text></View><Text style={ui.subtitle}>{profile?.privacy === 'private' ? 'حساب خاص' : 'حساب عام'} · المتابعة تتم عبر طلبات قبول.</Text></View>
       {authError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'right' }}>تعذّر تسجيل الخروج. جرّب مرة أخرى.</Text>}
       <Button label={busy ? 'جارٍ تسجيل الخروج…' : 'تسجيل الخروج'} secondary disabled={busy} icon="log-out-outline" onPress={async () => { if (busy) return; setBusy(true); try { await signOut(); } finally { setBusy(false); } }} />
     </Sheet>
@@ -65,6 +69,7 @@ const s = StyleSheet.create({
   avatarPhoto: { width: 84, height: 84, borderRadius: 42 },
   initial: { color: c.accent, fontSize: 37, fontWeight: '600' },
   name: { color: c.text, fontSize: 27, fontWeight: '700', textAlign: 'center', marginTop: 2 },
+  username: { color: c.accent, fontSize: 12, direction: 'ltr' },
   bio: { color: c.muted, fontSize: 13, textAlign: 'center' },
   status: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: c.raised, borderRadius: 16 },
   statusDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: c.accent },
