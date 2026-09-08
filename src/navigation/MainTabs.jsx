@@ -9,7 +9,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import CameraScreen from '../screens/CameraScreen';
 import CafeDetailScreen from '../screens/CafeDetailScreen';
 import PlusSheet from '../components/coffee/PlusSheet';
-import { Sheet, Empty } from '../components/coffee/Kit';
+import { Sheet } from '../components/coffee/Kit';
+import NotificationsPanel from '../components/coffee/NotificationsPanel';
 import { CoffeePreviewProvider } from '../context/CoffeePreviewContext';
 import { useAuth } from '../context/AuthContext';
 import { coffee as c } from '../theme/coffee';
@@ -43,7 +44,7 @@ function Tabs() {
     </Modal>
     <PlusSheet visible={!!plus} partner={plus === 'cafe'} onClose={() => setPlus(null)} />
     <Sheet visible={notifications} onClose={() => setNotifications(false)} title="الإشعارات">
-      <Empty icon="notifications-outline" title="كل شيء هادي هنا" text="إشعارات المتابعة والتفاعل تظهر هنا عند تفعيل الخدمة." />
+      <NotificationsPanel />
     </Sheet>
   </SafeAreaView>;
 }

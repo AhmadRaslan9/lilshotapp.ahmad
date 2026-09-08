@@ -71,6 +71,55 @@ service cloud.firestore {
       allow delete: if admin() || (owner(followerUid)
         && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)));
     }
+    function validNotification(data, targetUid) {
+      let actor = get(/databases/$(database)/documents/users/$(data.actorUid)).data;
+      return data.keys().hasAll(['type','actorUid','actorName','actorUsername','targetUid','postId','read','createdAt','readAt'])
+        && data.keys().hasOnly(['type','actorUid','actorName','actorUsername','targetUid','postId','read','createdAt','readAt'])
+        && data.type in ['follow','like']
+        && data.actorUid == request.auth.uid
+        && data.actorUid != targetUid
+        && data.targetUid == targetUid
+        && data.actorName == actor.displayName
+        && data.actorUsername == actor.usernameLower
+        && data.postId is string
+        && data.read == false
+        && data.createdAt == request.time
+        && data.readAt == null;
+    }
+    function notificationMatchesEvent(notificationId, data, targetUid) {
+      return (data.type == 'follow'
+          && data.postId == ''
+          && notificationId == 'follow_' + data.actorUid
+          && !exists(/databases/$(database)/documents/users/$(targetUid)/followers/$(data.actorUid))
+          && existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(data.actorUid)))
+        || (data.type == 'like'
+          && notificationId == 'like_' + data.postId + '_' + data.actorUid
+          && get(/databases/$(database)/documents/posts/$(data.postId)).data.authorUid == targetUid
+          && !exists(/databases/$(database)/documents/posts/$(data.postId)/likes/$(data.actorUid))
+          && existsAfter(/databases/$(database)/documents/posts/$(data.postId)/likes/$(data.actorUid)));
+    }
+    function notificationEventWasRemoved(data, targetUid) {
+      return (data.type == 'follow'
+          && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(data.actorUid)))
+        || (data.type == 'like'
+          && !existsAfter(/databases/$(database)/documents/posts/$(data.postId)/likes/$(data.actorUid)));
+    }
+    match /users/{targetUid}/notifications/{notificationId} {
+      allow get: if admin() || owner(targetUid) || (signedIn()
+        && (notificationId == 'follow_' + request.auth.uid
+          || notificationId.matches('^like_.*_' + request.auth.uid + '$')));
+      allow list: if admin() || owner(targetUid);
+      allow create: if signedIn()
+        && validNotification(request.resource.data, targetUid)
+        && notificationMatchesEvent(notificationId, request.resource.data, targetUid);
+      allow update: if owner(targetUid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read','readAt'])
+        && request.resource.data.read == true
+        && request.resource.data.readAt == request.time;
+      allow delete: if admin() || owner(targetUid) || (signedIn()
+        && request.auth.uid == resource.data.actorUid
+        && notificationEventWasRemoved(resource.data, targetUid));
+    }
     match /usernames/{username} {
       allow get: if signedIn();
       allow list: if admin();

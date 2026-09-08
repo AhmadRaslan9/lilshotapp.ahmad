@@ -24,20 +24,34 @@ export function subscribeToFollowingCount(actorUid, next, error) {
 
 export async function followProfile(actorUid, targetUid) {
   if (!actorUid || !targetUid || actorUid === targetUid) throw codedError('relationship/invalid-target');
-  const targetSnap = await getDoc(doc(db, 'users', targetUid));
+  const notificationRef = doc(db, 'users', targetUid, 'notifications', `follow_${actorUid}`);
+  const [targetSnap, actorSnap, notificationSnap] = await Promise.all([
+    getDoc(doc(db, 'users', targetUid)),
+    getDoc(doc(db, 'users', actorUid)),
+    getDoc(notificationRef),
+  ]);
   const target = targetSnap.exists() ? { uid: targetSnap.id, ...targetSnap.data() } : null;
   if (!canFollowProfile(actorUid, target)) throw codedError('relationship/invalid-target');
+  if (!actorSnap.exists()) throw codedError('relationship/invalid-actor');
+  const actor = actorSnap.data();
   const data = { followerUid: actorUid, targetUid, createdAt: serverTimestamp() };
   const batch = writeBatch(db);
   batch.set(doc(db, 'users', targetUid, 'followers', actorUid), data);
   batch.set(doc(db, 'users', actorUid, 'following', targetUid), data);
+  if (!notificationSnap.exists()) batch.set(notificationRef, {
+    type: 'follow', actorUid, actorName: actor.displayName, actorUsername: actor.usernameLower,
+    targetUid, postId: '', read: false, createdAt: serverTimestamp(), readAt: null,
+  });
   await batch.commit();
 }
 
 export async function unfollowProfile(actorUid, targetUid) {
   if (!actorUid || !targetUid || actorUid === targetUid) throw codedError('relationship/invalid-target');
+  const notificationRef = doc(db, 'users', targetUid, 'notifications', `follow_${actorUid}`);
+  const notificationSnap = await getDoc(notificationRef);
   const batch = writeBatch(db);
   batch.delete(doc(db, 'users', targetUid, 'followers', actorUid));
   batch.delete(doc(db, 'users', actorUid, 'following', targetUid));
+  if (notificationSnap.exists()) batch.delete(notificationRef);
   await batch.commit();
 }
