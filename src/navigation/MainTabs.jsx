@@ -4,18 +4,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import TabBar from '../components/TabBar';
 import HomeScreen from '../screens/HomeScreen';
 import ShopScreen from '../screens/ShopScreen';
-import FavoritesScreen from '../screens/FavoritesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CameraScreen from '../screens/CameraScreen';
 import CafeDetailScreen from '../screens/CafeDetailScreen';
 import PlusSheet from '../components/coffee/PlusSheet';
 import { Sheet } from '../components/coffee/Kit';
 import NotificationsPanel from '../components/coffee/NotificationsPanel';
+import PeopleSearchPanel from '../components/coffee/PeopleSearchPanel';
+import UserProfileScreen from '../screens/UserProfileScreen';
 import { CoffeePreviewProvider } from '../context/CoffeePreviewContext';
 import { useAuth } from '../context/AuthContext';
 import { coffee as c } from '../theme/coffee';
 
-const screens = { home: HomeScreen, shop: ShopScreen, favorites: FavoritesScreen, profile: ProfileScreen };
+const screens = { home: HomeScreen, shop: ShopScreen, profile: ProfileScreen };
 
 export default function MainTabs() {
   const { user } = useAuth();
@@ -27,10 +28,13 @@ function Tabs() {
   const [cafe, setCafe] = useState(null);
   const [plus, setPlus] = useState(null);
   const [notifications, setNotifications] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [person, setPerson] = useState(null);
   const shared = {
     onCamera: () => setCameraOpen(true), onCafe: setCafe,
     onPlus: () => setPlus('user'), onPartner: () => setPlus('cafe'),
     onExplore: () => setActiveTab('shop'), onNotifications: () => setNotifications(true),
+    onSearch: () => setSearchOpen(true), onProfile: setPerson,
   };
   const ActiveScreen = screens[activeTab] || HomeScreen;
   return <SafeAreaView style={s.container} edges={['top', 'left', 'right']}>
@@ -42,9 +46,15 @@ function Tabs() {
     <Modal visible={!!cafe} animationType="slide" onRequestClose={() => setCafe(null)}>
       <View style={s.modalBackdrop}><View style={s.modalFrame}>{cafe && <CafeDetailScreen key={cafe.id} cafe={cafe} onClose={() => setCafe(null)} />}</View></View>
     </Modal>
+    <Modal visible={!!person} animationType="slide" onRequestClose={() => setPerson(null)}>
+      <View style={s.modalBackdrop}><View style={s.modalFrame}>{person && <UserProfileScreen key={person.uid} initialProfile={person} onClose={() => setPerson(null)} />}</View></View>
+    </Modal>
     <PlusSheet visible={!!plus} partner={plus === 'cafe'} onClose={() => setPlus(null)} />
     <Sheet visible={notifications} onClose={() => setNotifications(false)} title="الإشعارات">
       <NotificationsPanel />
+    </Sheet>
+    <Sheet visible={searchOpen} onClose={() => setSearchOpen(false)} title="البحث عن الأشخاص">
+      <PeopleSearchPanel onOpen={(profile) => { setSearchOpen(false); setPerson(profile); }} />
     </Sheet>
   </SafeAreaView>;
 }

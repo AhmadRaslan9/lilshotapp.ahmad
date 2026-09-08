@@ -20,12 +20,11 @@ export default function TabBar({ activeTab, onChangeTab, onOpenCamera }) {
   return <View style={[s.wrap, { bottom: Math.max(insets.bottom, 14) }]} pointerEvents="box-none">
     <BlurView intensity={70} tint="dark" style={s.bar}>
       {item('profile', 'person', 'حسابي')}
-      {item('favorites', 'bookmark', 'محفوظاتي')}
       <TouchableOpacity onPress={onOpenCamera} style={s.camera} accessibilityRole="button"
         accessibilityLabel="افتح الكاميرا" activeOpacity={0.8}>
         <View style={s.cameraInner}><Ionicons name="camera" size={29} color={c.dark} /></View>
       </TouchableOpacity>
-      {item('shop', 'compass', 'اكتشف')}
+      {item('shop', 'storefront', 'المقاهي')}
       {item('home', 'home', 'اللحظات')}
     </BlurView>
   </View>;

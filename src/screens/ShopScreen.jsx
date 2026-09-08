@@ -27,8 +27,8 @@ export default function ShopScreen({ onCafe, onPartner }) {
   }), []);
   return <View style={ui.page}>
     <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <View style={ui.between}><Text style={ui.eyebrow}>FIND YOUR NEXT CUP</Text><Pill label={city} icon="location-outline" onPress={() => setCitiesOpen(true)} /></View>
-      <View><Text style={ui.title}>{'كوب جديد،\nومكان تحبّه.'}</Text><Text style={ui.subtitle}>اكتشف المقاهي، وشوف الحكاية وراء كل كوب.</Text></View>
+      <View style={ui.between}><Text style={ui.eyebrow}>COFFEE SHOPS</Text><Pill label={city} icon="location-outline" onPress={() => setCitiesOpen(true)} /></View>
+      <View><Text style={ui.title}>كوب جديد،\nومكان تحبّه.</Text><Text style={ui.subtitle}>تصفّح المقاهي، وشوف الحكاية وراء كل كوب.</Text></View>
       <View style={s.search}><Ionicons name="search-outline" size={20} color={c.muted} />
         <TextInput value={query} onChangeText={setQuery} placeholder="اسم المقهى أو الحي" accessibilityLabel="ابحث عن مقهى" placeholderTextColor={c.muted} style={s.input} />
       </View>

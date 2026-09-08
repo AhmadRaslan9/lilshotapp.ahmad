@@ -8,7 +8,7 @@
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/firebase-config.test.mjs && node tests/coffee-preview.test.mjs && node tests/profile-model.test.mjs && node tests/menu-model.test.mjs && node tests/cafe-model.test.mjs && node tests/store-model.test.mjs && node tests/relationship-model.test.mjs && node tests/post-model.test.mjs && node tests/notification-model.test.mjs"
+    "test": "node tests/firebase-config.test.mjs && node tests/coffee-preview.test.mjs && node tests/profile-model.test.mjs && node tests/menu-model.test.mjs && node tests/cafe-model.test.mjs && node tests/store-model.test.mjs && node tests/relationship-model.test.mjs && node tests/post-model.test.mjs && node tests/notification-model.test.mjs && node tests/public-profile-model.test.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",

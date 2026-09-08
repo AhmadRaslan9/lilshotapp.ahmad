@@ -22,11 +22,10 @@ service cloud.firestore {
         && data.createdAt == request.time && data.updatedAt == request.time;
     }
     match /users/{uid} {
-      allow get: if admin() || owner(uid) || (signedIn() && resource.data.privacy == 'public');
+      allow get: if admin() || owner(uid) || (signedIn()
+        && resource.data.accountStatus == 'active');
       allow list: if admin() || (signedIn()
-        && resource.data.accountType == 'cafe'
-        && resource.data.accountStatus == 'active'
-        && resource.data.privacy == 'public');
+        && resource.data.accountStatus == 'active');
       allow create: if owner(uid) && validProfile(request.resource.data, uid)
         && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.usernameLower)).data.ownerUid == uid;
       allow update: if admin() || (owner(uid)
@@ -40,6 +39,10 @@ service cloud.firestore {
       let target = get(/databases/$(database)/documents/users/$(targetUid)).data;
       return signedIn() && target.privacy == 'public' && target.accountStatus == 'active';
     }
+    function targetAcceptsFollowRequests(targetUid) {
+      let target = get(/databases/$(database)/documents/users/$(targetUid)).data;
+      return signedIn() && target.privacy == 'private' && target.accountStatus == 'active';
+    }
     function validRelationship(data, followerUid, targetUid) {
       return data.keys().hasAll(['followerUid','targetUid','createdAt'])
         && data.keys().hasOnly(['followerUid','targetUid','createdAt'])
@@ -50,9 +53,13 @@ service cloud.firestore {
     }
     match /users/{targetUid}/followers/{followerUid} {
       allow read: if admin() || owner(targetUid) || (signedIn()
-        && get(/databases/$(database)/documents/users/$(targetUid)).data.privacy == 'public');
-      allow create: if signedIn() && request.auth.uid == followerUid
-        && targetCanBeFollowed(targetUid)
+        && (get(/databases/$(database)/documents/users/$(targetUid)).data.privacy == 'public'
+          || exists(/databases/$(database)/documents/users/$(targetUid)/followers/$(request.auth.uid))));
+      allow create: if signedIn()
+        && ((request.auth.uid == followerUid && targetCanBeFollowed(targetUid))
+          || (request.auth.uid == targetUid
+            && exists(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(followerUid))
+            && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(followerUid))))
         && validRelationship(request.resource.data, followerUid, targetUid)
         && getAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid)).data.followerUid == followerUid
         && getAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid)).data.targetUid == targetUid;
@@ -62,8 +69,11 @@ service cloud.firestore {
     }
     match /users/{followerUid}/following/{targetUid} {
       allow read: if admin() || owner(followerUid);
-      allow create: if signedIn() && request.auth.uid == followerUid
-        && targetCanBeFollowed(targetUid)
+      allow create: if signedIn()
+        && ((request.auth.uid == followerUid && targetCanBeFollowed(targetUid))
+          || (request.auth.uid == targetUid
+            && exists(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(followerUid))
+            && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(followerUid))))
         && validRelationship(request.resource.data, followerUid, targetUid)
         && getAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)).data.followerUid == followerUid
         && getAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)).data.targetUid == targetUid;
@@ -71,11 +81,29 @@ service cloud.firestore {
       allow delete: if admin() || (owner(followerUid)
         && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)));
     }
+    function validFollowRequest(data, requesterUid, targetUid) {
+      return data.keys().hasAll(['requesterUid','targetUid','createdAt'])
+        && data.keys().hasOnly(['requesterUid','targetUid','createdAt'])
+        && data.requesterUid == requesterUid
+        && data.targetUid == targetUid
+        && requesterUid != targetUid
+        && data.createdAt == request.time;
+    }
+    match /users/{targetUid}/followRequests/{requesterUid} {
+      allow get: if admin() || owner(targetUid) || (signedIn() && request.auth.uid == requesterUid);
+      allow list: if admin() || owner(targetUid);
+      allow create: if signedIn() && request.auth.uid == requesterUid
+        && targetAcceptsFollowRequests(targetUid)
+        && validFollowRequest(request.resource.data, requesterUid, targetUid)
+        && !exists(/databases/$(database)/documents/users/$(targetUid)/followers/$(requesterUid));
+      allow update: if false;
+      allow delete: if admin() || owner(targetUid) || (signedIn() && request.auth.uid == requesterUid);
+    }
     function validNotification(data, targetUid) {
       let actor = get(/databases/$(database)/documents/users/$(data.actorUid)).data;
       return data.keys().hasAll(['type','actorUid','actorName','actorUsername','targetUid','postId','read','createdAt','readAt'])
         && data.keys().hasOnly(['type','actorUid','actorName','actorUsername','targetUid','postId','read','createdAt','readAt'])
-        && data.type in ['follow','like']
+        && data.type in ['follow','follow_request','follow_accepted','like']
         && data.actorUid == request.auth.uid
         && data.actorUid != targetUid
         && data.targetUid == targetUid
@@ -92,6 +120,16 @@ service cloud.firestore {
           && notificationId == 'follow_' + data.actorUid
           && !exists(/databases/$(database)/documents/users/$(targetUid)/followers/$(data.actorUid))
           && existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(data.actorUid)))
+        || (data.type == 'follow_request'
+          && data.postId == ''
+          && notificationId == 'follow_request_' + data.actorUid
+          && !exists(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(data.actorUid))
+          && existsAfter(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(data.actorUid)))
+        || (data.type == 'follow_accepted'
+          && data.postId == ''
+          && exists(/databases/$(database)/documents/users/$(data.actorUid)/followRequests/$(targetUid))
+          && !existsAfter(/databases/$(database)/documents/users/$(data.actorUid)/followRequests/$(targetUid))
+          && existsAfter(/databases/$(database)/documents/users/$(targetUid)/following/$(data.actorUid)))
         || (data.type == 'like'
           && notificationId == 'like_' + data.postId + '_' + data.actorUid
           && get(/databases/$(database)/documents/posts/$(data.postId)).data.authorUid == targetUid
@@ -101,12 +139,15 @@ service cloud.firestore {
     function notificationEventWasRemoved(data, targetUid) {
       return (data.type == 'follow'
           && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(data.actorUid)))
+        || (data.type == 'follow_request'
+          && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(data.actorUid)))
         || (data.type == 'like'
           && !existsAfter(/databases/$(database)/documents/posts/$(data.postId)/likes/$(data.actorUid)));
     }
     match /users/{targetUid}/notifications/{notificationId} {
       allow get: if admin() || owner(targetUid) || (signedIn()
         && (notificationId == 'follow_' + request.auth.uid
+          || notificationId == 'follow_request_' + request.auth.uid
           || notificationId.matches('^like_.*_' + request.auth.uid + '$')));
       allow list: if admin() || owner(targetUid);
       allow create: if signedIn()
@@ -138,7 +179,6 @@ service cloud.firestore {
       let profile = get(/databases/$(database)/documents/users/$(uid)).data;
       return owner(uid)
         && profile.accountStatus == 'active'
-        && profile.privacy == 'public'
         && ((profile.accountType == 'user' && profile.plan == 'plus')
           || (profile.accountType == 'cafe' && profile.plan in ['cafe_basic', 'cafe_pro']));
     }
@@ -157,7 +197,8 @@ service cloud.firestore {
         && data.imageURL.matches('^https://.*')
         && data.caption is string && data.caption.size() >= 1 && data.caption.size() <= 500
         && data.locationName is string && data.locationName.size() <= 100
-        && data.visibility == 'public'
+        && ((profile.privacy == 'public' && data.visibility == 'public')
+          || (profile.privacy == 'private' && data.visibility == 'followers'))
         && data.status in ['published', 'hidden']
         && data.likesCount is int && data.likesCount >= 0;
     }
@@ -172,11 +213,17 @@ service cloud.firestore {
           || (exists(likePath) && !existsAfter(likePath)
             && request.resource.data.likesCount == resource.data.get('likesCount', 0) - 1));
     }
+    function canReadPublishedPost(data) {
+      return signedIn() && data.status == 'published'
+        && (data.visibility == 'public'
+          || (data.visibility == 'followers'
+            && exists(/databases/$(database)/documents/users/$(data.authorUid)/followers/$(request.auth.uid))));
+    }
     match /posts/{postId} {
       allow get: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
-        || (signedIn() && resource.data.status == 'published' && resource.data.visibility == 'public');
+        || canReadPublishedPost(resource.data);
       allow list: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
-        || (signedIn() && resource.data.status == 'published' && resource.data.visibility == 'public');
+        || canReadPublishedPost(resource.data);
       allow create: if signedIn()
         && profileCanPublishPost(request.resource.data.authorUid)
         && validPost(request.resource.data)
@@ -188,8 +235,7 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
           && request.resource.data.status in ['published','hidden']
           && request.resource.data.updatedAt == request.time)
-        || (signedIn() && resource.data.status == 'published'
-          && resource.data.visibility == 'public' && validLikeCountChange(postId));
+        || (canReadPublishedPost(resource.data) && validLikeCountChange(postId));
       allow delete: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid);
     }
     function validPostLike(data, postId, userUid) {
@@ -203,8 +249,7 @@ service cloud.firestore {
       allow get: if admin() || (signedIn() && request.auth.uid == userUid);
       allow list: if admin();
       allow create: if signedIn() && request.auth.uid == userUid
-        && get(/databases/$(database)/documents/posts/$(postId)).data.status == 'published'
-        && get(/databases/$(database)/documents/posts/$(postId)).data.visibility == 'public'
+        && canReadPublishedPost(get(/databases/$(database)/documents/posts/$(postId)).data)
         && validPostLike(request.resource.data, postId, userUid)
         && getAfter(/databases/$(database)/documents/posts/$(postId)).data.likesCount
           == get(/databases/$(database)/documents/posts/$(postId)).data.get('likesCount', 0) + 1;

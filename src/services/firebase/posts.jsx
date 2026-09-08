@@ -19,7 +19,7 @@ export async function createPost(profile, input) {
     imageURL: post.imageURL,
     caption: post.caption,
     locationName: post.locationName,
-    visibility: 'public',
+    visibility: profile.privacy === 'private' ? 'followers' : 'public',
     status: 'published',
     likesCount: 0,
     createdAt: serverTimestamp(),
@@ -35,6 +35,16 @@ export function subscribeToPublicPosts(next, error) {
 export function subscribeToUserPosts(uid, next, error) {
   if (!uid) { next([]); return () => {}; }
   const postsQuery = query(collection(db, 'posts'), where('authorUid', '==', uid), limit(50));
+  return onSnapshot(postsQuery, (snap) => next(snap.docs.map((item) => toFeedPost(item.id, item.data())).sort((a, b) => b.createdAtMs - a.createdAtMs).slice(0, 30)), error);
+}
+
+export function subscribeToPublicUserPosts(uid, next, error) {
+  return subscribeToVisibleUserPosts(uid, 'public', next, error);
+}
+
+export function subscribeToVisibleUserPosts(uid, visibility, next, error) {
+  if (!uid) { next([]); return () => {}; }
+  const postsQuery = query(collection(db, 'posts'), where('authorUid', '==', uid), where('status', '==', 'published'), where('visibility', '==', visibility === 'followers' ? 'followers' : 'public'), limit(50));
   return onSnapshot(postsQuery, (snap) => next(snap.docs.map((item) => toFeedPost(item.id, item.data())).sort((a, b) => b.createdAtMs - a.createdAtMs).slice(0, 30)), error);
 }
 

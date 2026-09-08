@@ -9,11 +9,11 @@ test('post input is trimmed and requires a secure image URL', () => {
   assert.equal(validatePostInput({ ...value, imageURL: 'http://example.com/a.jpg' }), 'post/invalid-image-url');
 });
 
-test('only public active Plus users or active cafes can publish permanent posts', () => {
+test('active Plus users and active cafes can publish public or follower-only posts', () => {
   assert.equal(canPublishPermanentPost({ accountStatus: 'active', privacy: 'public', accountType: 'user', plan: 'plus' }), true);
   assert.equal(canPublishPermanentPost({ accountStatus: 'active', privacy: 'public', accountType: 'cafe', plan: 'cafe_basic' }), true);
   assert.equal(canPublishPermanentPost({ accountStatus: 'active', privacy: 'public', accountType: 'user', plan: 'free' }), false);
-  assert.equal(canPublishPermanentPost({ accountStatus: 'active', privacy: 'private', accountType: 'user', plan: 'plus' }), false);
+  assert.equal(canPublishPermanentPost({ accountStatus: 'active', privacy: 'private', accountType: 'user', plan: 'plus' }), true);
 });
 
 test('Firestore post maps safely to a feed card', () => {

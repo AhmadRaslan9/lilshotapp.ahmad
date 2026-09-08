@@ -9,6 +9,12 @@ test('follow and like notifications have clear Arabic copy and icons', () => {
   assert.equal(notificationIcon('like'), 'heart');
 });
 
+test('private follow request notifications explain request and acceptance', () => {
+  assert.match(notificationText({ type: 'follow_request', actorName: 'ليان' }), /طلب متابعة/);
+  assert.match(notificationText({ type: 'follow_accepted', actorName: 'ليان' }), /وافق/);
+  assert.equal(notificationIcon('follow_accepted'), 'checkmark-circle');
+});
+
 test('Firestore notification maps without exposing unknown fields', () => {
   const item = toNotification('n1', { type: 'like', actorUid: 'u1', actorName: 'أحمد', actorUsername: 'ahmad', targetUid: 'u2', postId: 'p1', read: false, secret: 'ignored', createdAt: { toMillis: () => 456 } });
   assert.equal(item.id, 'n1');

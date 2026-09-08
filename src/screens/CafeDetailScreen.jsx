@@ -26,7 +26,7 @@ export default function CafeDetailScreen({ cafe, onClose }) {
   const [followError, setFollowError] = useState('');
   const [followersCount, setFollowersCount] = useState(Number(cafe.followersCount ?? cafe.followers ?? 0));
   const { user, isFirebaseConfigured } = useAuth();
-  const { saved, toggleSaved, requested, toggleRequest } = useCoffeePreview();
+  const { requested, toggleRequest } = useCoffeePreview();
   const pending = requested.includes(cafe.id);
   const liveRelationship = cafe.isLive && isFirebaseConfigured && user?.uid && user.uid !== 'demo-local';
   const ownCafe = liveRelationship && user.uid === cafe.id;
@@ -59,7 +59,7 @@ export default function CafeDetailScreen({ cafe, onClose }) {
   const groupedMenu = useMemo(() => cafe.isLive ? MENU_CATEGORIES.map((category) => ({ category, items: menu.filter((item) => item.category === category) })).filter((group) => group.items.length) : [], [cafe.isLive, menu]);
   return <SafeAreaView style={ui.page}><ScrollView contentContainerStyle={{ paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
     <View style={s.hero}><Photo uri={details.coverURL || cafe.image || require('../assets/CoffeeShop.png')} style={StyleSheet.absoluteFill} /><LinearGradient colors={['rgba(0,0,0,0.15)','rgba(20,22,21,0.2)',c.bg]} style={StyleSheet.absoluteFill} />
-      <View style={[ui.between, { padding: 20 }]}><IconButton glass icon="arrow-forward" label="العودة للمقاهي" onPress={onClose} /><IconButton glass icon={saved.includes(cafe.id) ? 'bookmark' : 'bookmark-outline'} label={saved.includes(cafe.id) ? 'إزالة المقهى من المحفوظات' : 'حفظ المقهى'} selected={saved.includes(cafe.id)} onPress={() => toggleSaved(cafe.id)} /></View>
+      <View style={[ui.between, { padding: 20 }]}><IconButton glass icon="arrow-forward" label="العودة للمقاهي" onPress={onClose} /></View>
       <View style={s.heroBottom}><Text style={ui.eyebrow}>{cafe.latin}</Text><View style={s.nameRow}><Text style={s.name}>{cafe.name}</Text>{cafe.verified && <View style={s.verified}><Ionicons name="checkmark" size={12} color={c.onPhoto} /></View>}</View><Text style={ui.subtitle}>{details.city || cafe.city} · {details.district || cafe.district}</Text></View>
     </View>
     <View style={{ paddingHorizontal: 22, gap: 22 }}>{cafe.isLive ? <DemoNote>حساب مقهى حقيقي · المنيو يتحدّث مباشرة</DemoNote> : <DemoNote>حساب مقهى تجريبي · بيانات وأسعار توضيحية</DemoNote>}

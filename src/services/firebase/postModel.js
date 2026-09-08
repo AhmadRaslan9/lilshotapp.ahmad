@@ -17,7 +17,7 @@ export function validatePostInput(input) {
 }
 
 export function canPublishPermanentPost(profile) {
-  if (!profile || profile.accountStatus !== 'active' || profile.privacy !== 'public') return false;
+  if (!profile || profile.accountStatus !== 'active' || !['public', 'private'].includes(profile.privacy)) return false;
   if (profile.accountType === 'cafe') return ['cafe_basic', 'cafe_pro'].includes(profile.plan);
   return profile.plan === 'plus';
 }

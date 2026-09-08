@@ -30,7 +30,7 @@ export default function PostComposerScreen({ onClose }) {
     try {
       await createPost(profile, normalized);
       setDraft(emptyPost);
-      setMessage('تم نشر البوست وظهر في الرئيسية وملفك الشخصي.');
+      setMessage(profile?.privacy === 'private' ? 'تم نشر البوست وسيظهر في ملفك للمتابعين المقبولين.' : 'تم نشر البوست وظهر في الرئيسية وملفك الشخصي.');
     } catch (value) { setError(errorText(value.code)); }
     finally { setBusy(false); }
   };

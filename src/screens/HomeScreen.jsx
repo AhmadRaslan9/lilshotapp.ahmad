@@ -11,7 +11,7 @@ import { subscribeToPublicPosts } from '../services/firebase/posts';
 import { useAuth } from '../context/AuthContext';
 import PostLikeButton from '../components/coffee/PostLikeButton';
 
-export default function HomeScreen({ onCamera, onCafe, onNotifications }) {
+export default function HomeScreen({ onCamera, onCafe, onNotifications, onSearch }) {
   const [filter, setFilter] = useState('all');
   const [author, setAuthor] = useState(null);
   const [now, setNow] = useState(Date.now());
@@ -33,7 +33,7 @@ export default function HomeScreen({ onCamera, onCafe, onNotifications }) {
 
   return <ScrollView style={ui.page} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={ui.between}>
-      <IconButton icon="camera-outline" label="صوّر لحظتك" onPress={onCamera} />
+      <IconButton icon="search-outline" label="البحث عن الأشخاص" onPress={onSearch} />
       <Text style={s.brand}>lilshot<Text style={{ color: c.accent }}>.</Text></Text>
       <IconButton icon="notifications-outline" label="الإشعارات" onPress={onNotifications} />
     </View>

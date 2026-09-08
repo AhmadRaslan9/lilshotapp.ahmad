@@ -79,7 +79,7 @@ export default function ProfileScreen({ onCamera, onPlus }) {
         <View style={{ flex: 1, gap: 4 }}><Text style={s.plusName}>{isPlus ? 'LilShot Plus مفعّل' : 'lilshot plus'}</Text><Text style={s.plusTag}>{isPlus ? 'بوستات دائمة ولحظات حتى 24 ساعة' : 'مساحة أكبر للحظاتك الحلوة'}</Text></View>
         <Ionicons name="arrow-back" size={20} color={c.accent} />
       </TouchableOpacity>}
-      {(cafeLive || (isPlus && profile?.privacy === 'public')) && <View style={{ alignSelf: 'stretch' }}><Button label="إنشاء منشور جديد" icon="add-circle-outline" onPress={() => setPostComposerOpen(true)} /></View>}
+      {(cafeLive || isPlus) && <View style={{ alignSelf: 'stretch' }}><Button label="إنشاء منشور جديد" icon="add-circle-outline" onPress={() => setPostComposerOpen(true)} /></View>}
       <View style={s.tabs}>{(isCafe ? [['menu', 'restaurant-outline', 'المنيو'], ['post', 'grid-outline', 'المنشورات']] : [['moment', 'time-outline', 'اللحظات'], ['post', 'grid-outline', 'البوستات']]).map(([id, icon, label]) =>
         <TouchableOpacity key={id} onPress={() => setTab(id)} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: tab === id }} style={[s.tab, tab === id && s.activeTab]}>
           <Ionicons name={icon} size={20} color={tab === id ? c.dark : c.muted} /><Text style={[s.tabText, tab === id && { color: c.dark }]}>{label}</Text>
