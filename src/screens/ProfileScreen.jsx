@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,9 @@ import { coffee as c } from '../theme/coffee';
 import { ui, Photo, Button, IconButton, Empty } from '../components/coffee/Kit';
 import CafeMenuScreen from './CafeMenuScreen';
 import CafeStoreSettingsScreen from './CafeStoreSettingsScreen';
+import { subscribeToFollowersCount, subscribeToFollowingCount } from '../services/firebase/relationships';
+import PostComposerScreen from './PostComposerScreen';
+import { deletePost, subscribeToUserPosts } from '../services/firebase/posts';
 
 export default function ProfileScreen({ onCamera, onPlus }) {
   const { user } = useAuth();
@@ -16,8 +19,14 @@ export default function ProfileScreen({ onCamera, onPlus }) {
   const [settings, setSettings] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [storeSettingsOpen, setStoreSettingsOpen] = useState(false);
+  const [followersCount, setFollowersCount] = useState(profile?.followersCount || 0);
+  const [followingCount, setFollowingCount] = useState(profile?.followingCount || 0);
+  const [postComposerOpen, setPostComposerOpen] = useState(false);
+  const [ownPosts, setOwnPosts] = useState([]);
+  const [postError, setPostError] = useState('');
+  const [confirmPostId, setConfirmPostId] = useState(null);
   const name = profile?.displayName || user?.displayName || 'صديق القهوة';
-  const stats = [profile?.momentsCount || 0, profile?.followersCount || 0, profile?.points || 0];
+  const stats = [profile?.momentsCount || 0, followersCount, followingCount, profile?.points || 0];
   const isCafe = profile?.accountType === 'cafe';
   const isPlus = profile?.plan === 'plus';
   const cafePlan = profile?.plan === 'cafe_pro' ? 'Pro' : profile?.plan === 'cafe_basic' ? 'Basic' : null;
@@ -28,9 +37,21 @@ export default function ProfileScreen({ onCamera, onPlus }) {
   const primaryAction = isCafe ? (cafeLive ? 'إدارة واجهة المتجر' : 'عرض حالة الاشتراك') : 'صوّر لحظتك';
   const primaryIcon = isCafe ? 'storefront-outline' : 'camera-outline';
 
+  useEffect(() => {
+    if (!user?.uid || user.uid === 'demo-local') return undefined;
+    const stopFollowers = subscribeToFollowersCount(user.uid, setFollowersCount, () => {});
+    const stopFollowing = subscribeToFollowingCount(user.uid, setFollowingCount, () => {});
+    return () => { stopFollowers(); stopFollowing(); };
+  }, [user?.uid]);
+  useEffect(() => {
+    if (!user?.uid || user.uid === 'demo-local') return undefined;
+    return subscribeToUserPosts(user.uid, setOwnPosts, () => setPostError('تعذّر تحميل منشوراتك الآن.'));
+  }, [user?.uid]);
+
   if (settings) return <ProfileSettings key={user?.uid} onClose={() => setSettings(false)} />;
   if (menuOpen) return <CafeMenuScreen onClose={() => setMenuOpen(false)} />;
   if (storeSettingsOpen) return <CafeStoreSettingsScreen onClose={() => setStoreSettingsOpen(false)} />;
+  if (postComposerOpen) return <PostComposerScreen onClose={() => { setPostComposerOpen(false); setTab('post'); }} />;
 
   return <View style={ui.page}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={s.cover}>
@@ -45,7 +66,7 @@ export default function ProfileScreen({ onCamera, onPlus }) {
       {!!profile?.bio && <Text style={s.bio}>{profile.bio}</Text>}
       <View style={ui.row}><Ionicons name={isCafe ? 'storefront-outline' : profile?.privacy === 'private' ? 'lock-closed-outline' : 'globe-outline'} size={13} color={c.muted} /><Text style={s.bio}>{isCafe ? 'حساب مقهى' : profile?.privacy === 'private' ? 'حساب خاص' : 'حساب عام'}</Text></View>
       <View style={[s.status, isCafe && !cafeLive && s.pendingStatus]}><View style={[s.statusDot, isCafe && !cafeLive && s.pendingDot]} /><Text style={s.statusText}>{statusText}</Text></View>
-      <View style={s.stats}>{[['اللحظات', 'camera-outline'], ['المتابعون', 'people-outline'], ['النقاط', 'sparkles-outline']].map(([label], i) =>
+      <View style={s.stats}>{[['اللحظات', 'camera-outline'], ['المتابعون', 'people-outline'], ['يتابع', 'person-add-outline'], ['النقاط', 'sparkles-outline']].map(([label], i) =>
         <View key={label} style={[s.stat, i > 0 && s.statDivider]}><Text style={s.statValue}>{stats[i]}</Text><Text style={s.statLabel}>{label}</Text></View>)}
       </View>
       <Text style={s.waiting}>{isCafe ? (cafeLive ? 'إحصاءات المتجر ستبدأ مع نشر المنيو والظهور.' : 'فعّل الاشتراك من الإدارة لتبدأ بنشر المنيو والظهور.') : 'إحصاءاتك تظهر مع تفعيل النشر والتفاعل'}</Text>
@@ -58,17 +79,23 @@ export default function ProfileScreen({ onCamera, onPlus }) {
         <View style={{ flex: 1, gap: 4 }}><Text style={s.plusName}>{isPlus ? 'LilShot Plus مفعّل' : 'lilshot plus'}</Text><Text style={s.plusTag}>{isPlus ? 'بوستات دائمة ولحظات حتى 24 ساعة' : 'مساحة أكبر للحظاتك الحلوة'}</Text></View>
         <Ionicons name="arrow-back" size={20} color={c.accent} />
       </TouchableOpacity>}
+      {(cafeLive || (isPlus && profile?.privacy === 'public')) && <View style={{ alignSelf: 'stretch' }}><Button label="إنشاء منشور جديد" icon="add-circle-outline" onPress={() => setPostComposerOpen(true)} /></View>}
       <View style={s.tabs}>{(isCafe ? [['menu', 'restaurant-outline', 'المنيو'], ['post', 'grid-outline', 'المنشورات']] : [['moment', 'time-outline', 'اللحظات'], ['post', 'grid-outline', 'البوستات']]).map(([id, icon, label]) =>
         <TouchableOpacity key={id} onPress={() => setTab(id)} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: tab === id }} style={[s.tab, tab === id && s.activeTab]}>
           <Ionicons name={icon} size={20} color={tab === id ? c.dark : c.muted} /><Text style={[s.tabText, tab === id && { color: c.dark }]}>{label}</Text>
         </TouchableOpacity>)}
       </View>
-      <View style={s.galleryEmpty}>
+      {tab === 'post' && ownPosts.length ? <View style={s.postGrid}>{ownPosts.map((post) => <View key={post.id} style={s.postCard}>
+        <Photo uri={post.image} label={`منشور ${post.caption}`} style={s.postImage} />
+        <View style={s.postBody}><Text numberOfLines={2} style={s.postCaption}>{post.caption}</Text>{!!post.note && <Text numberOfLines={1} style={ui.subtitle}>{post.note}</Text>}<View style={ui.row}><Ionicons name="heart-outline" size={17} color={c.accent} /><Text style={ui.subtitle}>{post.likes} إعجاب</Text></View><Button label="حذف المنشور" secondary icon="trash-outline" onPress={() => setConfirmPostId(post.id)} /></View>
+        {confirmPostId === post.id && <View style={s.deleteConfirm}><Text style={ui.subtitle}>متأكد من حذف المنشور نهائيًا؟</Text><View style={ui.row}><Button label="إلغاء" secondary onPress={() => setConfirmPostId(null)} /><Button label="نعم، احذف" onPress={async () => { try { await deletePost(post.id); setConfirmPostId(null); } catch { setPostError('تعذّر حذف المنشور.'); } }} /></View></View>}
+      </View>)}</View> : <View style={s.galleryEmpty}>
         <View style={s.emptyFrames} pointerEvents="none"><View style={[s.frame, { transform: [{ rotate: '-9deg' }] }]} /><View style={[s.frame, s.frontFrame]}><Ionicons name={tab === 'moment' ? 'camera-outline' : 'images-outline'} size={34} color="#B39377" /></View></View>
         <Empty icon={null} title={tab === 'moment' ? 'أول لحظة، بداية حكاية' : 'للقطات اللي تستاهل تبقى'}
-          text={isCafe ? (cafeLive ? 'أضف أصناف المنيو وعروض المقهى في المرحلة القادمة؛ يظهر ما تنشره هنا للزوار.' : 'بعد تفعيل الاشتراك من لوحة الإدارة ستتمكن من تجهيز منيو متجرك والظهور في الاستكشاف.') : tab === 'moment' ? 'هذه مساحتك لصور القهوة. جرّب الكاميرا؛ نشر الصور يتوفر قريباً.' : 'بوستات Plus تظهر هنا أثناء الاشتراك، وتُخفى عند انتهائه حتى التجديد.'}
+          text={isCafe ? (cafeLive ? (tab === 'post' ? 'أنشئ أول منشور لمتجرك؛ سيظهر هنا وفي الرئيسية مباشرة.' : 'أضف أصناف المنيو لتظهر لزوار متجرك.') : 'بعد تفعيل الاشتراك من لوحة الإدارة ستتمكن من تجهيز منيو متجرك والظهور في الاستكشاف.') : tab === 'moment' ? 'هذه مساحتك لصور القهوة. جرّب الكاميرا؛ نشر الصور يتوفر قريباً.' : isPlus ? 'أنشئ أول منشور دائم؛ سيظهر هنا وفي الرئيسية مباشرة.' : 'المنشورات الدائمة متاحة مع LilShot Plus.'}
           action={isCafe ? undefined : tab === 'moment' ? undefined : 'تعرّف على Plus'} onAction={onPlus} />
-      </View>
+      </View>}
+      {!!postError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{postError}</Text>}
     </View>
   </ScrollView>
   </View>;
@@ -204,6 +231,12 @@ const s = StyleSheet.create({
   activeTab: { borderBottomColor: c.dark },
   tabText: { color: c.muted, fontSize: 12, fontWeight: '600' },
   galleryEmpty: { alignSelf: 'stretch', paddingTop: 30 },
+  postGrid: { alignSelf: 'stretch', gap: 16, paddingTop: 18 },
+  postCard: { overflow: 'hidden', borderRadius: 24, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line },
+  postImage: { width: '100%', height: 330 },
+  postBody: { padding: 16, gap: 10 },
+  postCaption: { color: c.text, fontSize: 16, fontWeight: '700', textAlign: 'right' },
+  deleteConfirm: { padding: 16, borderTopWidth: 1, borderColor: c.line, backgroundColor: c.raised, gap: 12 },
   emptyFrames: { height: 120, width: 128, alignSelf: 'center' },
   frame: { position: 'absolute', left: 2, top: 0, width: 89, height: 112, borderRadius: 17, borderWidth: 1, borderColor: '#DCCDBC', backgroundColor: '#EEE5D9' },
   frontFrame: { left: 32, top: 8, backgroundColor: '#FBF7EF', transform: [{ rotate: '7deg' }], alignItems: 'center', justifyContent: 'center' },

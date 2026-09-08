@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,17 +7,29 @@ import { coffee as c } from '../theme/coffee';
 import { previewShots, previewCafes, visibleShots, remainingLabel } from '../data/coffeePreview';
 import { useCoffeePreview } from '../context/CoffeePreviewContext';
 import { Photo, Pill, IconButton, DemoNote, Empty, ui } from '../components/coffee/Kit';
+import { subscribeToPublicPosts } from '../services/firebase/posts';
+import { useAuth } from '../context/AuthContext';
+import PostLikeButton from '../components/coffee/PostLikeButton';
 
 export default function HomeScreen({ onCamera, onCafe, onNotifications }) {
   const [filter, setFilter] = useState('all');
   const [author, setAuthor] = useState(null);
   const [now, setNow] = useState(Date.now());
+  const [livePosts, setLivePosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState('');
+  const [likeError, setLikeError] = useState('');
+  const { user, isFirebaseConfigured } = useAuth();
   const { liked, toggleLiked } = useCoffeePreview();
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(tick);
   }, []);
-  const shots = visibleShots(previewShots, filter, author, now);
+  useEffect(() => {
+    if (!user?.uid || !isFirebaseConfigured || user.uid === 'demo-local') { setPostsLoading(false); return undefined; }
+    return subscribeToPublicPosts((value) => { setLivePosts(value); setPostsLoading(false); setPostsError(''); }, () => { setPostsLoading(false); setPostsError('تعذّر تحميل المنشورات الحقيقية الآن.'); });
+  }, [isFirebaseConfigured, user?.uid]);
+  const shots = visibleShots([...livePosts, ...previewShots], filter, author, now);
 
   return <ScrollView style={ui.page} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={ui.between}>
@@ -42,12 +54,16 @@ export default function HomeScreen({ onCamera, onCafe, onNotifications }) {
       {[['all', 'لك'], ['moment', 'اللحظات'], ['post', 'البوستات']].map(([id, label]) =>
         <Pill key={id} label={label} active={filter === id} onPress={() => setFilter(id)} />)}
     </View></View>
-    <DemoNote>معاينة التصميم · اللقطات والإعجابات تجريبية</DemoNote>
+    <DemoNote>المنشورات الحقيقية تتحدّث مباشرة · اللحظات والإعجابات ما زالت تجريبية</DemoNote>
+    {postsLoading && <ActivityIndicator color={c.accent} accessibilityLabel="جارٍ تحميل المنشورات" />}
+    {!!postsError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{postsError}</Text>}
+    {!!likeError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{likeError}</Text>}
     {author && <Pill label="عرض الجميع ×" onPress={() => setAuthor(null)} />}
     {shots.map(shot => {
       const cafe = previewCafes.find(x => x.id === shot.cafeId);
-      const isLiked = liked.includes(shot.id);
+      const isLiked = !shot.isLive && liked.includes(shot.id);
       const post = shot.kind === 'post';
+      const locationLabel = cafe ? `${cafe.name} · ${cafe.city}` : shot.note || 'منشور LilShot';
       return <View key={shot.id} style={[s.card, post && s.postCard]}>
         <Photo uri={shot.image} label={`قهوة ${shot.author}`} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={['rgba(34,23,17,0.12)', 'transparent', 'rgba(34,23,17,0.5)']} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
@@ -55,7 +71,7 @@ export default function HomeScreen({ onCamera, onCafe, onNotifications }) {
           <BlurView intensity={35} tint="dark" style={s.authorGlass}>
             <View style={s.avatar}><Text style={s.initial}>{shot.initial}</Text></View>
             <View><View style={[ui.row, { gap: 4 }]}><Text style={s.author}>{shot.author}</Text>
-              {shot.plus && <Ionicons name="checkmark-circle" size={14} color="#B6DCED" accessibilityLabel="مشترك Plus" />}
+              {(shot.plus || shot.verified) && <Ionicons name="checkmark-circle" size={14} color="#B6DCED" accessibilityLabel="حساب موثّق" />}
             </View><Text style={s.handle}>@{shot.handle}</Text></View>
           </BlurView>
           <View style={[s.type, post && s.postType]}>
@@ -67,14 +83,14 @@ export default function HomeScreen({ onCamera, onCafe, onNotifications }) {
           <Text style={s.caption}>{shot.caption}</Text>
           <Text style={s.note}>{shot.note}</Text>
           <View style={ui.between}>
-            <TouchableOpacity onPress={() => onCafe(cafe)} style={s.location} accessibilityRole="button" accessibilityLabel={`زيارة ${cafe.name}`}>
-              <Ionicons name="location-outline" size={15} color={c.onPhoto} /><Text style={s.locationText}>{cafe.name} · {cafe.city}</Text>
+            <TouchableOpacity onPress={cafe ? () => onCafe(cafe) : undefined} disabled={!cafe} style={s.location} accessibilityRole={cafe ? 'button' : 'text'} accessibilityLabel={cafe ? `زيارة ${cafe.name}` : locationLabel}>
+              <Ionicons name="location-outline" size={15} color={c.onPhoto} /><Text style={s.locationText}>{locationLabel}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => toggleLiked(shot.id)} accessibilityRole="button"
+            {shot.isLive ? <PostLikeButton postId={shot.id} count={shot.likes} onError={setLikeError} /> : <TouchableOpacity onPress={() => toggleLiked(shot.id)} accessibilityRole="button"
               accessibilityLabel={`إعجاب بلقطة ${shot.author}`} accessibilityState={{ selected: isLiked }} style={s.like}>
               <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={22} color={isLiked ? '#FFB5AB' : c.onPhoto} />
               <Text style={s.likes}>{shot.likes + (isLiked ? 1 : 0)}</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
           </View>
           {!post && <View style={s.track}><View style={[s.progress, { width: `${Math.max(0, Math.min(100, (shot.expiresAt - now) / (shot.durationHours * 3600000) * 100))}%` }]} /></View>}
         </BlurView>

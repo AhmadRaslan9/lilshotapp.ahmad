@@ -36,6 +36,41 @@ service cloud.firestore {
         && request.resource.data.privacy in ['public', 'private'] && request.resource.data.updatedAt == request.time);
       allow delete: if admin();
     }
+    function targetCanBeFollowed(targetUid) {
+      let target = get(/databases/$(database)/documents/users/$(targetUid)).data;
+      return signedIn() && target.privacy == 'public' && target.accountStatus == 'active';
+    }
+    function validRelationship(data, followerUid, targetUid) {
+      return data.keys().hasAll(['followerUid','targetUid','createdAt'])
+        && data.keys().hasOnly(['followerUid','targetUid','createdAt'])
+        && data.followerUid == followerUid
+        && data.targetUid == targetUid
+        && followerUid != targetUid
+        && data.createdAt == request.time;
+    }
+    match /users/{targetUid}/followers/{followerUid} {
+      allow read: if admin() || owner(targetUid) || (signedIn()
+        && get(/databases/$(database)/documents/users/$(targetUid)).data.privacy == 'public');
+      allow create: if signedIn() && request.auth.uid == followerUid
+        && targetCanBeFollowed(targetUid)
+        && validRelationship(request.resource.data, followerUid, targetUid)
+        && getAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid)).data.followerUid == followerUid
+        && getAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid)).data.targetUid == targetUid;
+      allow update: if false;
+      allow delete: if admin() || (signedIn() && request.auth.uid == followerUid
+        && !existsAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid)));
+    }
+    match /users/{followerUid}/following/{targetUid} {
+      allow read: if admin() || owner(followerUid);
+      allow create: if signedIn() && request.auth.uid == followerUid
+        && targetCanBeFollowed(targetUid)
+        && validRelationship(request.resource.data, followerUid, targetUid)
+        && getAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)).data.followerUid == followerUid
+        && getAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)).data.targetUid == targetUid;
+      allow update: if false;
+      allow delete: if admin() || (owner(followerUid)
+        && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)));
+    }
     match /usernames/{username} {
       allow get: if signedIn();
       allow list: if admin();
@@ -49,6 +84,85 @@ service cloud.firestore {
     match /adminAudit/{entryId} {
       allow read, create: if admin();
       allow update, delete: if false;
+    }
+    function profileCanPublishPost(uid) {
+      let profile = get(/databases/$(database)/documents/users/$(uid)).data;
+      return owner(uid)
+        && profile.accountStatus == 'active'
+        && profile.privacy == 'public'
+        && ((profile.accountType == 'user' && profile.plan == 'plus')
+          || (profile.accountType == 'cafe' && profile.plan in ['cafe_basic', 'cafe_pro']));
+    }
+    function validPost(data) {
+      let profile = get(/databases/$(database)/documents/users/$(data.authorUid)).data;
+      return data.keys().hasAll(['authorUid','authorName','authorUsername','authorPhotoURL','authorVerified','authorType','imageURL','caption','locationName','visibility','status','likesCount','createdAt','updatedAt'])
+        && data.keys().hasOnly(['authorUid','authorName','authorUsername','authorPhotoURL','authorVerified','authorType','imageURL','caption','locationName','visibility','status','likesCount','createdAt','updatedAt'])
+        && data.authorUid is string
+        && data.authorUid == request.auth.uid
+        && data.authorName == profile.displayName
+        && data.authorUsername == profile.usernameLower
+        && data.authorPhotoURL == profile.photoURL
+        && data.authorVerified == profile.verified
+        && data.authorType == profile.accountType
+        && data.imageURL is string && data.imageURL.size() >= 9 && data.imageURL.size() <= 1000
+        && data.imageURL.matches('^https://.*')
+        && data.caption is string && data.caption.size() >= 1 && data.caption.size() <= 500
+        && data.locationName is string && data.locationName.size() <= 100
+        && data.visibility == 'public'
+        && data.status in ['published', 'hidden']
+        && data.likesCount is int && data.likesCount >= 0;
+    }
+    function validLikeCountChange(postId) {
+      let likePath = /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount','updatedAt'])
+        && request.resource.data.likesCount is int
+        && request.resource.data.likesCount >= 0
+        && request.resource.data.updatedAt == request.time
+        && ((!exists(likePath) && existsAfter(likePath)
+            && request.resource.data.likesCount == resource.data.get('likesCount', 0) + 1)
+          || (exists(likePath) && !existsAfter(likePath)
+            && request.resource.data.likesCount == resource.data.get('likesCount', 0) - 1));
+    }
+    match /posts/{postId} {
+      allow get: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
+        || (signedIn() && resource.data.status == 'published' && resource.data.visibility == 'public');
+      allow list: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
+        || (signedIn() && resource.data.status == 'published' && resource.data.visibility == 'public');
+      allow create: if signedIn()
+        && profileCanPublishPost(request.resource.data.authorUid)
+        && validPost(request.resource.data)
+        && request.resource.data.status == 'published'
+        && request.resource.data.likesCount == 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if (admin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+          && request.resource.data.status in ['published','hidden']
+          && request.resource.data.updatedAt == request.time)
+        || (signedIn() && resource.data.status == 'published'
+          && resource.data.visibility == 'public' && validLikeCountChange(postId));
+      allow delete: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid);
+    }
+    function validPostLike(data, postId, userUid) {
+      return data.keys().hasAll(['postId','userUid','createdAt'])
+        && data.keys().hasOnly(['postId','userUid','createdAt'])
+        && data.postId == postId
+        && data.userUid == userUid
+        && data.createdAt == request.time;
+    }
+    match /posts/{postId}/likes/{userUid} {
+      allow get: if admin() || (signedIn() && request.auth.uid == userUid);
+      allow list: if admin();
+      allow create: if signedIn() && request.auth.uid == userUid
+        && get(/databases/$(database)/documents/posts/$(postId)).data.status == 'published'
+        && get(/databases/$(database)/documents/posts/$(postId)).data.visibility == 'public'
+        && validPostLike(request.resource.data, postId, userUid)
+        && getAfter(/databases/$(database)/documents/posts/$(postId)).data.likesCount
+          == get(/databases/$(database)/documents/posts/$(postId)).data.get('likesCount', 0) + 1;
+      allow update: if false;
+      allow delete: if admin() || (signedIn() && request.auth.uid == userUid
+        && getAfter(/databases/$(database)/documents/posts/$(postId)).data.likesCount
+          == get(/databases/$(database)/documents/posts/$(postId)).data.get('likesCount', 0) - 1);
     }
     function cafeIsActive(cafeUid) {
       let cafe = get(/databases/$(database)/documents/users/$(cafeUid)).data;
