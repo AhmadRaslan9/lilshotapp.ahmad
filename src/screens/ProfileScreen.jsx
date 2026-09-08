@@ -7,6 +7,7 @@ import { useProfile } from '../context/ProfileContext';
 import { coffee as c } from '../theme/coffee';
 import { ui, Photo, Button, IconButton, Empty } from '../components/coffee/Kit';
 import CafeMenuScreen from './CafeMenuScreen';
+import CafeStoreSettingsScreen from './CafeStoreSettingsScreen';
 
 export default function ProfileScreen({ onCamera, onPlus }) {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export default function ProfileScreen({ onCamera, onPlus }) {
   const [tab, setTab] = useState('moment');
   const [settings, setSettings] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [storeSettingsOpen, setStoreSettingsOpen] = useState(false);
   const name = profile?.displayName || user?.displayName || 'صديق القهوة';
   const stats = [profile?.momentsCount || 0, profile?.followersCount || 0, profile?.points || 0];
   const isCafe = profile?.accountType === 'cafe';
@@ -28,6 +30,7 @@ export default function ProfileScreen({ onCamera, onPlus }) {
 
   if (settings) return <ProfileSettings key={user?.uid} onClose={() => setSettings(false)} />;
   if (menuOpen) return <CafeMenuScreen onClose={() => setMenuOpen(false)} />;
+  if (storeSettingsOpen) return <CafeStoreSettingsScreen onClose={() => setStoreSettingsOpen(false)} />;
 
   return <View style={ui.page}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={s.cover}>
@@ -49,6 +52,7 @@ export default function ProfileScreen({ onCamera, onPlus }) {
       <View style={s.actions}><View style={{ flex: 1 }}><Button label={primaryAction} onPress={isCafe ? () => setMenuOpen(true) : onCamera} icon={primaryIcon} /></View><IconButton icon="settings-outline" label="فتح إعدادات الحساب" onPress={() => setSettings(true)} style={{ width: 52, height: 52, borderRadius: 26 }} /></View>
       {isCafe ? <View style={[s.cafeCard, !cafeLive && s.cafePendingCard]}>
         <View style={s.cafeCardTop}><View style={s.cafeIcon}><Ionicons name="storefront-outline" color={c.onPhoto} size={22} /></View><View style={{ flex: 1 }}><Text style={s.cafeCardTitle}>{cafeLive ? `متجرك على خطة ${cafePlan}` : 'اشتراك المتجر'}</Text><Text style={s.cafeCardText}>{cafeLive ? 'المنيو، الموقع والعروض ستظهر لزوار متجرك.' : 'بانتظار تفعيل الإدارة قبل نشر المنيو أو الظهور في الاستكشاف.'}</Text></View></View>
+        <Button label="تعديل معلومات المتجر" secondary icon="create-outline" onPress={() => setStoreSettingsOpen(true)} />
       </View> : <TouchableOpacity onPress={onPlus} accessibilityRole="button" accessibilityLabel="اكتشف مزايا Plus" style={[s.plus, isPlus && s.plusActive]}>
         <View style={s.plusIcon}><Ionicons name={isPlus ? 'checkmark-circle-outline' : 'sparkles-outline'} color={c.accent} size={24} /></View>
         <View style={{ flex: 1, gap: 4 }}><Text style={s.plusName}>{isPlus ? 'LilShot Plus مفعّل' : 'lilshot plus'}</Text><Text style={s.plusTag}>{isPlus ? 'بوستات دائمة ولحظات حتى 24 ساعة' : 'مساحة أكبر للحظاتك الحلوة'}</Text></View>

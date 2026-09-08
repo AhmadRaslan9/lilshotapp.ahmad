@@ -23,7 +23,10 @@ service cloud.firestore {
     }
     match /users/{uid} {
       allow get: if admin() || owner(uid) || (signedIn() && resource.data.privacy == 'public');
-      allow list: if admin();
+      allow list: if admin() || (signedIn()
+        && resource.data.accountType == 'cafe'
+        && resource.data.accountStatus == 'active'
+        && resource.data.privacy == 'public');
       allow create: if owner(uid) && validProfile(request.resource.data, uid)
         && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.usernameLower)).data.ownerUid == uid;
       allow update: if admin() || (owner(uid)
@@ -56,6 +59,53 @@ service cloud.firestore {
     function canManageCafe(cafeUid) {
       return owner(cafeUid) && cafeIsActive(cafeUid);
     }
+    function cafeIsDiscoverable(cafeUid) {
+      let cafe = get(/databases/$(database)/documents/users/$(cafeUid)).data;
+      return cafeIsActive(cafeUid) && cafe.privacy == 'public';
+    }
+    function cafeOwnerMayEdit(cafeUid) {
+      let cafe = get(/databases/$(database)/documents/users/$(cafeUid)).data;
+      return owner(cafeUid) && cafe.accountType == 'cafe' && cafe.accountStatus != 'banned';
+    }
+    function validStoreHours(hours) {
+      return hours is map
+        && hours.keys().hasAll(['saturday','sunday','monday','tuesday','wednesday','thursday','friday'])
+        && hours.keys().hasOnly(['saturday','sunday','monday','tuesday','wednesday','thursday','friday'])
+        && hours.saturday is string && hours.saturday.size() <= 40
+        && hours.sunday is string && hours.sunday.size() <= 40
+        && hours.monday is string && hours.monday.size() <= 40
+        && hours.tuesday is string && hours.tuesday.size() <= 40
+        && hours.wednesday is string && hours.wednesday.size() <= 40
+        && hours.thursday is string && hours.thursday.size() <= 40
+        && hours.friday is string && hours.friday.size() <= 40;
+    }
+    function validStoreDetails(data, cafeUid) {
+      return data.keys().hasAll(['ownerUid','city','district','address','mapsURL','category','description','coverURL','logoURL','hours','createdAt','updatedAt'])
+        && data.keys().hasOnly(['ownerUid','city','district','address','mapsURL','category','description','coverURL','logoURL','hours','createdAt','updatedAt'])
+        && data.ownerUid == cafeUid
+        && data.city in ['الرياض','جدة','مكة','المدينة','الخبر','الدمام','الطائف','أبها','أخرى']
+        && data.district is string && data.district.size() >= 2 && data.district.size() <= 60
+        && data.address is string && data.address.size() >= 3 && data.address.size() <= 160
+        && data.mapsURL is string && data.mapsURL.size() <= 1000
+        && data.category in ['قهوة مختصة','مقهى','حلويات','فطور','جلسات خارجية']
+        && data.description is string && data.description.size() <= 500
+        && data.coverURL is string && data.coverURL.size() <= 1000
+        && data.logoURL is string && data.logoURL.size() <= 1000
+        && validStoreHours(data.hours);
+    }
+    match /cafes/{cafeUid} {
+      allow get: if admin() || cafeOwnerMayEdit(cafeUid) || cafeIsDiscoverable(cafeUid);
+      allow list: if false;
+      allow create: if cafeOwnerMayEdit(cafeUid)
+        && validStoreDetails(request.resource.data, cafeUid)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if (admin() || cafeOwnerMayEdit(cafeUid))
+        && validStoreDetails(request.resource.data, cafeUid)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if admin();
+    }
     function validMenuItem(data, cafeUid) {
       return data.keys().hasAll(['ownerUid','name','description','price','category','available','imageURL','sortOrder','createdAt','updatedAt'])
         && data.keys().hasOnly(['ownerUid','name','description','price','category','available','imageURL','sortOrder','createdAt','updatedAt'])
@@ -69,7 +119,7 @@ service cloud.firestore {
         && data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 9999;
     }
     match /cafes/{cafeUid}/menuItems/{itemId} {
-      allow read: if admin() || cafeIsActive(cafeUid);
+      allow read: if admin() || canManageCafe(cafeUid) || cafeIsDiscoverable(cafeUid);
       allow create: if canManageCafe(cafeUid)
         && validMenuItem(request.resource.data, cafeUid)
         && request.resource.data.createdAt == request.time

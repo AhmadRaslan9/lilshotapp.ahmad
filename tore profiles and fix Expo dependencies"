@@ -1,0 +1,13 @@
+ firebase.json                           |   5 [32m+[m
+ firestore.rules                         |  47 [32m++++[m
+ package-lock.json                       | 616 [32m+++++++++++++++++++++++++++++++++[m[31m----------[m
+ package.json                            |   4 [32m+[m[31m-[m
+ src/App.jsx                             |   3 [32m+[m[31m-[m
+ src/context/ProfileContext.jsx          |  24 [32m++[m
+ src/navigation/RootNavigator.jsx        |  51 [32m++[m[31m--[m
+ src/screens/ProfileScreen.jsx           |  13 [32m+[m[31m-[m
+ src/screens/auth/ProfileSetupScreen.jsx |  52 [32m++++[m
+ src/services/firebase/profileModel.js   |  10 [32m+[m
+ src/services/firebase/profiles.jsx      |  37 [32m+++[m
+ tests/profile-model.test.mjs            |   8 [32m+[m
+ 12 files changed, 702 insertions(+), 168 deletions(-)

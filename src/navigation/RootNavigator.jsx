@@ -5,6 +5,7 @@ import MainTabs from './MainTabs';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import ProfileSetupScreen from '../screens/auth/ProfileSetupScreen';
+import AccountBlockedScreen from '../screens/AccountBlockedScreen';
 import { coffee as c } from '../theme/coffee';
 
 export default function RootNavigator() {
@@ -22,6 +23,7 @@ export default function RootNavigator() {
   if (!isAuthenticated) return <AuthNavigator />;
   if (profileLoading) return <View style={styles.loading}><ActivityIndicator size="large" color={c.accent} /></View>;
   if (profileError) return <View style={styles.loading}><Text style={styles.error}>تعذّر تحميل ملف الحساب. تأكد من نشر قواعد Firestore.</Text><TouchableOpacity onPress={retry} style={styles.retry}><Text style={styles.retryText}>إعادة المحاولة</Text></TouchableOpacity></View>;
+  if (profile?.accountStatus === 'banned') return <AccountBlockedScreen />;
   return profile ? <MainTabs /> : <ProfileSetupScreen />;
 }
 
