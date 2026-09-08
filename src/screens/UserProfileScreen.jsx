@@ -10,11 +10,17 @@ import { subscribeToProfile } from '../services/firebase/profiles';
 import { cancelFollowRequest, followProfile, requestFollowProfile, subscribeToFollowersCount, subscribeToFollowRequestState, subscribeToFollowState, unfollowProfile } from '../services/firebase/relationships';
 import { relationshipErrorMessage } from '../services/firebase/relationshipModel';
 import { subscribeToVisibleUserPosts } from '../services/firebase/posts';
+import { subscribeToVisibleUserMoments } from '../services/firebase/moments';
+import { remainingLabel } from '../data/coffeePreview';
+import ReportButton from '../components/coffee/ReportButton';
 
 export default function UserProfileScreen({ initialProfile, onClose }) {
   const { user } = useAuth();
   const [profile, setProfile] = useState(initialProfile);
   const [posts, setPosts] = useState([]);
+  const [moments, setMoments] = useState([]);
+  const [momentsLoading, setMomentsLoading] = useState(true);
+  const [now, setNow] = useState(Date.now());
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(false);
   const [requested, setRequested] = useState(false);
@@ -29,11 +35,16 @@ export default function UserProfileScreen({ initialProfile, onClose }) {
   useEffect(() => subscribeToProfile(uid, (value) => { if (value?.accountStatus === 'active') setProfile(value); else onClose(); }, () => setError('تعذّر تحديث بيانات الحساب.')), [uid]);
   useEffect(() => {
     const stopFollowers = subscribeToFollowersCount(uid, setFollowers, () => {});
-    if (!canSeePosts) { setPosts([]); setLoading(false); return stopFollowers; }
-    setLoading(true);
+    if (!canSeePosts) { setPosts([]); setMoments([]); setLoading(false); setMomentsLoading(false); return stopFollowers; }
+    setLoading(true); setMomentsLoading(true);
     const stopPosts = subscribeToVisibleUserPosts(uid, privateProfile ? 'followers' : 'public', (value) => { setPosts(value); setLoading(false); }, () => { setLoading(false); setError('تعذّر تحميل منشورات الحساب.'); });
-    return () => { stopFollowers(); stopPosts(); };
+    const stopMoments = subscribeToVisibleUserMoments(uid, privateProfile ? 'followers' : 'public', (value) => { setMoments(value); setMomentsLoading(false); }, () => { setMomentsLoading(false); setError('تعذّر تحميل لحظات الحساب.'); });
+    return () => { stopFollowers(); stopPosts(); stopMoments(); };
   }, [canSeePosts, privateProfile, uid]);
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
+  }, []);
   useEffect(() => {
     if (!user?.uid || own) { setRelationshipLoading(false); return undefined; }
     let followReady = false; let requestReady = false;
@@ -64,8 +75,10 @@ export default function UserProfileScreen({ initialProfile, onClose }) {
       <View style={s.accountType}><Ionicons name={privateProfile ? 'lock-closed-outline' : profile.accountType === 'cafe' ? 'storefront-outline' : 'person-outline'} size={15} color={c.accent} /><Text style={s.bio}>{privateProfile ? 'حساب خاص' : profile.accountType === 'cafe' ? 'حساب مقهى' : 'حساب عام'}</Text></View>
       <View style={s.stats}><View style={s.stat}><Text style={s.statValue}>{followers}</Text><Text style={s.statLabel}>متابعون</Text></View><View style={s.stat}><Text style={s.statValue}>{posts.length}</Text><Text style={s.statLabel}>منشورات</Text></View></View>
       <View style={{ alignSelf: 'stretch' }}><Button label={own ? 'هذا حسابك' : busy || relationshipLoading ? 'جارٍ التحديث…' : following ? 'إلغاء المتابعة' : requested ? 'إلغاء طلب المتابعة' : privateProfile ? 'طلب متابعة' : 'متابعة'} icon={following ? 'checkmark-circle-outline' : requested ? 'time-outline' : 'person-add-outline'} secondary={following || requested || own} disabled={own || busy || relationshipLoading} onPress={toggleFollow} /></View>
+      {!own && <View style={{ alignSelf: 'stretch' }}><ReportButton targetType={profile.accountType === 'cafe' ? 'cafe' : 'account'} targetId={uid} targetOwnerUid={uid} targetLabel={name} targetPreview={profile.bio || ''} label="تبليغ عن الحساب" /></View>}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-      <View style={s.section}><Text style={ui.heading}>المنشورات</Text>{!canSeePosts ? <Empty icon="lock-closed-outline" title="هذا الحساب خاص" text="أرسل طلب متابعة. بعد قبول الطلب ستظهر منشورات الحساب هنا." /> : <>{loading && <ActivityIndicator color={c.accent} />}{!loading && !posts.length && <Empty icon="images-outline" title="لا توجد منشورات بعد" text="عندما ينشر هذا الحساب ستظهر منشوراته هنا." />}{posts.map((post) => <View key={post.id} style={s.post}><Photo uri={post.image} label={post.caption} style={s.postImage} /><View style={s.postBody}><Text style={s.caption}>{post.caption}</Text>{!!post.note && <Text style={ui.subtitle}>{post.note}</Text>}<View style={s.likeCount}><Ionicons name="heart" size={15} color="#B34F52" /><Text style={ui.subtitle}>{post.likes} إعجاب</Text></View></View></View>)}</>}</View>
+      {!canSeePosts ? <View style={s.section}><Empty icon="lock-closed-outline" title="هذا الحساب خاص" text="أرسل طلب متابعة. بعد قبول الطلب ستظهر لحظاته ومنشوراته هنا." /></View> : <><View style={s.section}><Text style={ui.heading}>اللحظات</Text>{momentsLoading && <ActivityIndicator color={c.accent} />}{!momentsLoading && !moments.filter((item) => item.expiresAt > now).length && <Empty icon="time-outline" title="لا توجد لحظات الآن" text="لحظات هذا الحساب المنتهية تختفي تلقائيًا." />}{moments.filter((item) => item.expiresAt > now).map((moment) => <View key={moment.id} style={s.post}><Photo uri={moment.image} label={moment.caption} style={s.postImage} /><View style={s.postBody}><Text style={s.caption}>{moment.caption}</Text>{!!moment.note && <Text style={ui.subtitle}>{moment.note}</Text>}<View style={s.likeCount}><Ionicons name="time-outline" size={15} color={c.accent} /><Text style={ui.subtitle}>{remainingLabel(moment.expiresAt, now)}</Text></View><ReportButton targetType="moment" targetId={moment.id} targetOwnerUid={uid} targetLabel={`لحظة ${name}`} targetPreview={moment.caption} /></View></View>)}</View>
+      <View style={s.section}><Text style={ui.heading}>المنشورات</Text>{loading && <ActivityIndicator color={c.accent} />}{!loading && !posts.length && <Empty icon="images-outline" title="لا توجد منشورات بعد" text="عندما ينشر هذا الحساب ستظهر منشوراته هنا." />}{posts.map((post) => <View key={post.id} style={s.post}><Photo uri={post.image} label={post.caption} style={s.postImage} /><View style={s.postBody}><Text style={s.caption}>{post.caption}</Text>{!!post.note && <Text style={ui.subtitle}>{post.note}</Text>}<View style={s.likeCount}><Ionicons name="heart" size={15} color="#B34F52" /><Text style={ui.subtitle}>{post.likes} إعجاب</Text></View><ReportButton targetType="post" targetId={post.id} targetOwnerUid={uid} targetLabel={`منشور ${name}`} targetPreview={post.caption} /></View></View>)}</View></>}
     </View>
   </ScrollView></SafeAreaView>;
 }

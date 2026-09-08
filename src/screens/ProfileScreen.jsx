@@ -11,8 +11,10 @@ import CafeStoreSettingsScreen from './CafeStoreSettingsScreen';
 import { subscribeToFollowersCount, subscribeToFollowingCount } from '../services/firebase/relationships';
 import PostComposerScreen from './PostComposerScreen';
 import { deletePost, subscribeToUserPosts } from '../services/firebase/posts';
+import { deleteMoment, subscribeToOwnMoments } from '../services/firebase/moments';
+import { remainingLabel } from '../data/coffeePreview';
 
-export default function ProfileScreen({ onCamera, onPlus }) {
+export default function ProfileScreen({ onMoment, onPlus }) {
   const { user } = useAuth();
   const { profile } = useProfile();
   const [tab, setTab] = useState('moment');
@@ -23,10 +25,14 @@ export default function ProfileScreen({ onCamera, onPlus }) {
   const [followingCount, setFollowingCount] = useState(profile?.followingCount || 0);
   const [postComposerOpen, setPostComposerOpen] = useState(false);
   const [ownPosts, setOwnPosts] = useState([]);
+  const [ownMoments, setOwnMoments] = useState([]);
+  const [now, setNow] = useState(Date.now());
   const [postError, setPostError] = useState('');
   const [confirmPostId, setConfirmPostId] = useState(null);
+  const [confirmMomentId, setConfirmMomentId] = useState(null);
   const name = profile?.displayName || user?.displayName || 'صديق القهوة';
-  const stats = [profile?.momentsCount || 0, followersCount, followingCount, profile?.points || 0];
+  const activeOwnMoments = ownMoments.filter((item) => item.expiresAt > now);
+  const stats = [activeOwnMoments.length, followersCount, followingCount, profile?.points || 0];
   const isCafe = profile?.accountType === 'cafe';
   const isPlus = profile?.plan === 'plus';
   const cafePlan = profile?.plan === 'cafe_pro' ? 'Pro' : profile?.plan === 'cafe_basic' ? 'Basic' : null;
@@ -34,14 +40,22 @@ export default function ProfileScreen({ onCamera, onPlus }) {
   const statusText = isCafe
     ? (cafeLive ? `متجر ${cafePlan} نشط · جاهز للظهور` : 'المتجر بانتظار تفعيل الاشتراك')
     : (isPlus ? 'LilShot Plus · لحظات حتى 24 ساعة' : 'لحظات تُلتقط الآن · 8 ساعات');
-  const primaryAction = isCafe ? (cafeLive ? 'إدارة واجهة المتجر' : 'عرض حالة الاشتراك') : 'صوّر لحظتك';
-  const primaryIcon = isCafe ? 'storefront-outline' : 'camera-outline';
+  const primaryAction = isCafe ? (cafeLive ? 'إدارة واجهة المتجر' : 'عرض حالة الاشتراك') : 'أضف لحظة';
+  const primaryIcon = isCafe ? 'storefront-outline' : 'time-outline';
 
   useEffect(() => {
     if (!user?.uid || user.uid === 'demo-local') return undefined;
     const stopFollowers = subscribeToFollowersCount(user.uid, setFollowersCount, () => {});
     const stopFollowing = subscribeToFollowingCount(user.uid, setFollowingCount, () => {});
     return () => { stopFollowers(); stopFollowing(); };
+  }, [user?.uid]);
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
+  }, []);
+  useEffect(() => {
+    if (!user?.uid || user.uid === 'demo-local') return undefined;
+    return subscribeToOwnMoments(user.uid, setOwnMoments, () => setPostError('تعذّر تحميل لحظاتك الآن.'));
   }, [user?.uid]);
   useEffect(() => {
     if (!user?.uid || user.uid === 'demo-local') return undefined;
@@ -70,7 +84,7 @@ export default function ProfileScreen({ onCamera, onPlus }) {
         <View key={label} style={[s.stat, i > 0 && s.statDivider]}><Text style={s.statValue}>{stats[i]}</Text><Text style={s.statLabel}>{label}</Text></View>)}
       </View>
       <Text style={s.waiting}>{isCafe ? (cafeLive ? 'إحصاءات المتجر ستبدأ مع نشر المنيو والظهور.' : 'فعّل الاشتراك من الإدارة لتبدأ بنشر المنيو والظهور.') : 'إحصاءاتك تظهر مع تفعيل النشر والتفاعل'}</Text>
-      <View style={s.actions}><View style={{ flex: 1 }}><Button label={primaryAction} onPress={isCafe ? () => setMenuOpen(true) : onCamera} icon={primaryIcon} /></View><IconButton icon="settings-outline" label="فتح إعدادات الحساب" onPress={() => setSettings(true)} style={{ width: 52, height: 52, borderRadius: 26 }} /></View>
+      <View style={s.actions}><View style={{ flex: 1 }}><Button label={primaryAction} onPress={isCafe ? () => setMenuOpen(true) : onMoment} icon={primaryIcon} /></View><IconButton icon="settings-outline" label="فتح إعدادات الحساب" onPress={() => setSettings(true)} style={{ width: 52, height: 52, borderRadius: 26 }} /></View>
       {isCafe ? <View style={[s.cafeCard, !cafeLive && s.cafePendingCard]}>
         <View style={s.cafeCardTop}><View style={s.cafeIcon}><Ionicons name="storefront-outline" color={c.onPhoto} size={22} /></View><View style={{ flex: 1 }}><Text style={s.cafeCardTitle}>{cafeLive ? `متجرك على خطة ${cafePlan}` : 'اشتراك المتجر'}</Text><Text style={s.cafeCardText}>{cafeLive ? 'المنيو، الموقع والعروض ستظهر لزوار متجرك.' : 'بانتظار تفعيل الإدارة قبل نشر المنيو أو الظهور في الاستكشاف.'}</Text></View></View>
         <Button label="تعديل معلومات المتجر" secondary icon="create-outline" onPress={() => setStoreSettingsOpen(true)} />
@@ -85,14 +99,18 @@ export default function ProfileScreen({ onCamera, onPlus }) {
           <Ionicons name={icon} size={20} color={tab === id ? c.dark : c.muted} /><Text style={[s.tabText, tab === id && { color: c.dark }]}>{label}</Text>
         </TouchableOpacity>)}
       </View>
-      {tab === 'post' && ownPosts.length ? <View style={s.postGrid}>{ownPosts.map((post) => <View key={post.id} style={s.postCard}>
+      {tab === 'moment' && activeOwnMoments.length ? <View style={s.postGrid}>{activeOwnMoments.map((moment) => <View key={moment.id} style={s.postCard}>
+        <Photo uri={moment.image} label={`لحظة ${moment.caption}`} style={s.postImage} />
+        <View style={s.postBody}><Text numberOfLines={2} style={s.postCaption}>{moment.caption}</Text>{!!moment.note && <Text numberOfLines={1} style={ui.subtitle}>{moment.note}</Text>}<View style={ui.row}><Ionicons name="time-outline" size={17} color={c.accent} /><Text style={ui.subtitle}>{remainingLabel(moment.expiresAt, now)}</Text></View><Button label="حذف اللحظة" secondary icon="trash-outline" onPress={() => setConfirmMomentId(moment.id)} /></View>
+        {confirmMomentId === moment.id && <View style={s.deleteConfirm}><Text style={ui.subtitle}>متأكد من حذف اللحظة؟</Text><View style={ui.row}><Button label="إلغاء" secondary onPress={() => setConfirmMomentId(null)} /><Button label="نعم، احذف" onPress={async () => { try { await deleteMoment(moment.id); setConfirmMomentId(null); } catch { setPostError('تعذّر حذف اللحظة.'); } }} /></View></View>}
+      </View>)}</View> : tab === 'post' && ownPosts.length ? <View style={s.postGrid}>{ownPosts.map((post) => <View key={post.id} style={s.postCard}>
         <Photo uri={post.image} label={`منشور ${post.caption}`} style={s.postImage} />
         <View style={s.postBody}><Text numberOfLines={2} style={s.postCaption}>{post.caption}</Text>{!!post.note && <Text numberOfLines={1} style={ui.subtitle}>{post.note}</Text>}<View style={ui.row}><Ionicons name="heart-outline" size={17} color={c.accent} /><Text style={ui.subtitle}>{post.likes} إعجاب</Text></View><Button label="حذف المنشور" secondary icon="trash-outline" onPress={() => setConfirmPostId(post.id)} /></View>
         {confirmPostId === post.id && <View style={s.deleteConfirm}><Text style={ui.subtitle}>متأكد من حذف المنشور نهائيًا؟</Text><View style={ui.row}><Button label="إلغاء" secondary onPress={() => setConfirmPostId(null)} /><Button label="نعم، احذف" onPress={async () => { try { await deletePost(post.id); setConfirmPostId(null); } catch { setPostError('تعذّر حذف المنشور.'); } }} /></View></View>}
       </View>)}</View> : <View style={s.galleryEmpty}>
         <View style={s.emptyFrames} pointerEvents="none"><View style={[s.frame, { transform: [{ rotate: '-9deg' }] }]} /><View style={[s.frame, s.frontFrame]}><Ionicons name={tab === 'moment' ? 'camera-outline' : 'images-outline'} size={34} color="#B39377" /></View></View>
         <Empty icon={null} title={tab === 'moment' ? 'أول لحظة، بداية حكاية' : 'للقطات اللي تستاهل تبقى'}
-          text={isCafe ? (cafeLive ? (tab === 'post' ? 'أنشئ أول منشور لمتجرك؛ سيظهر هنا وفي الرئيسية مباشرة.' : 'أضف أصناف المنيو لتظهر لزوار متجرك.') : 'بعد تفعيل الاشتراك من لوحة الإدارة ستتمكن من تجهيز منيو متجرك والظهور في الاستكشاف.') : tab === 'moment' ? 'هذه مساحتك لصور القهوة. جرّب الكاميرا؛ نشر الصور يتوفر قريباً.' : isPlus ? 'أنشئ أول منشور دائم؛ سيظهر هنا وفي الرئيسية مباشرة.' : 'المنشورات الدائمة متاحة مع LilShot Plus.'}
+          text={isCafe ? (cafeLive ? (tab === 'post' ? 'أنشئ أول منشور لمتجرك؛ سيظهر هنا وفي الرئيسية مباشرة.' : 'أضف أصناف المنيو لتظهر لزوار متجرك.') : 'بعد تفعيل الاشتراك من لوحة الإدارة ستتمكن من تجهيز منيو متجرك والظهور في الاستكشاف.') : tab === 'moment' ? 'أنشئ أول لحظة من رابط صورة؛ ستختفي بعد انتهاء مدتها.' : isPlus ? 'أنشئ أول منشور دائم؛ سيظهر هنا وفي الرئيسية مباشرة.' : 'المنشورات الدائمة متاحة مع LilShot Plus.'}
           action={isCafe ? undefined : tab === 'moment' ? undefined : 'تعرّف على Plus'} onAction={onPlus} />
       </View>}
       {!!postError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{postError}</Text>}

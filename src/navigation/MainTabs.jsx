@@ -6,6 +6,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ShopScreen from '../screens/ShopScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CameraScreen from '../screens/CameraScreen';
+import MomentComposerScreen from '../screens/MomentComposerScreen';
 import CafeDetailScreen from '../screens/CafeDetailScreen';
 import PlusSheet from '../components/coffee/PlusSheet';
 import { Sheet } from '../components/coffee/Kit';
@@ -25,13 +26,14 @@ export default function MainTabs() {
 function Tabs() {
   const [activeTab, setActiveTab] = useState('home');
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [momentComposerOpen, setMomentComposerOpen] = useState(false);
   const [cafe, setCafe] = useState(null);
   const [plus, setPlus] = useState(null);
   const [notifications, setNotifications] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [person, setPerson] = useState(null);
   const shared = {
-    onCamera: () => setCameraOpen(true), onCafe: setCafe,
+    onCamera: () => setCameraOpen(true), onMoment: () => setMomentComposerOpen(true), onCafe: setCafe,
     onPlus: () => setPlus('user'), onPartner: () => setPlus('cafe'),
     onExplore: () => setActiveTab('shop'), onNotifications: () => setNotifications(true),
     onSearch: () => setSearchOpen(true), onProfile: setPerson,
@@ -42,6 +44,9 @@ function Tabs() {
     <TabBar activeTab={activeTab} onChangeTab={setActiveTab} onOpenCamera={shared.onCamera} />
     <Modal visible={cameraOpen} animationType="slide" onRequestClose={() => setCameraOpen(false)}>
       <View style={s.modalBackdrop}><View style={s.modalFrame}>{cameraOpen && <CameraScreen onClose={() => setCameraOpen(false)} />}</View></View>
+    </Modal>
+    <Modal visible={momentComposerOpen} animationType="slide" onRequestClose={() => setMomentComposerOpen(false)}>
+      <View style={s.modalBackdrop}><View style={s.modalFrame}>{momentComposerOpen && <MomentComposerScreen onClose={() => setMomentComposerOpen(false)} />}</View></View>
     </Modal>
     <Modal visible={!!cafe} animationType="slide" onRequestClose={() => setCafe(null)}>
       <View style={s.modalBackdrop}><View style={s.modalFrame}>{cafe && <CafeDetailScreen key={cafe.id} cafe={cafe} onClose={() => setCafe(null)} />}</View></View>

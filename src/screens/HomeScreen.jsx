@@ -8,16 +8,21 @@ import { previewShots, previewCafes, visibleShots, remainingLabel } from '../dat
 import { useCoffeePreview } from '../context/CoffeePreviewContext';
 import { Photo, Pill, IconButton, DemoNote, Empty, ui } from '../components/coffee/Kit';
 import { subscribeToPublicPosts } from '../services/firebase/posts';
+import { subscribeToPublicMoments } from '../services/firebase/moments';
 import { useAuth } from '../context/AuthContext';
 import PostLikeButton from '../components/coffee/PostLikeButton';
+import ReportButton from '../components/coffee/ReportButton';
 
-export default function HomeScreen({ onCamera, onCafe, onNotifications, onSearch }) {
+export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch }) {
   const [filter, setFilter] = useState('all');
   const [author, setAuthor] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [livePosts, setLivePosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState('');
+  const [liveMoments, setLiveMoments] = useState([]);
+  const [momentsLoading, setMomentsLoading] = useState(true);
+  const [momentsError, setMomentsError] = useState('');
   const [likeError, setLikeError] = useState('');
   const { user, isFirebaseConfigured } = useAuth();
   const { liked, toggleLiked } = useCoffeePreview();
@@ -29,7 +34,12 @@ export default function HomeScreen({ onCamera, onCafe, onNotifications, onSearch
     if (!user?.uid || !isFirebaseConfigured || user.uid === 'demo-local') { setPostsLoading(false); return undefined; }
     return subscribeToPublicPosts((value) => { setLivePosts(value); setPostsLoading(false); setPostsError(''); }, () => { setPostsLoading(false); setPostsError('تعذّر تحميل المنشورات الحقيقية الآن.'); });
   }, [isFirebaseConfigured, user?.uid]);
-  const shots = visibleShots([...livePosts, ...previewShots], filter, author, now);
+  useEffect(() => {
+    if (!user?.uid || !isFirebaseConfigured || user.uid === 'demo-local') { setMomentsLoading(false); return undefined; }
+    return subscribeToPublicMoments((value) => { setLiveMoments(value); setMomentsLoading(false); setMomentsError(''); }, () => { setMomentsLoading(false); setMomentsError('تعذّر تحميل اللحظات الحقيقية الآن.'); });
+  }, [isFirebaseConfigured, user?.uid]);
+  const shots = visibleShots([...liveMoments, ...livePosts, ...previewShots], filter, author, now);
+  const liveStories = Array.from(new Map(liveMoments.filter((item) => item.expiresAt > now).map((item) => [item.authorUid, item])).values());
 
   return <ScrollView style={ui.page} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={ui.between}>
@@ -39,9 +49,16 @@ export default function HomeScreen({ onCamera, onCafe, onNotifications, onSearch
     </View>
     <View style={s.intro}><Text style={s.title}>يومك يستاهل لقطة.</Text><Text style={ui.subtitle}>قهوة، وأصحاب، ولحظات حلوة.</Text></View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.stories}>
-      <TouchableOpacity style={s.story} onPress={onCamera} accessibilityRole="button" accessibilityLabel="أضف لحظة">
+      <TouchableOpacity style={s.story} onPress={onMoment} accessibilityRole="button" accessibilityLabel="أضف لحظة">
         <View style={s.addStory}><Ionicons name="add" size={28} color={c.accent} /></View><Text style={s.storyName}>لحظتك</Text>
       </TouchableOpacity>
+      {liveStories.map(shot => <TouchableOpacity key={shot.authorUid} style={s.story}
+        accessibilityRole="button" accessibilityLabel={`لحظات ${shot.author}`}
+        accessibilityState={{ selected: author === shot.handle }}
+        onPress={() => { setAuthor(author === shot.handle ? null : shot.handle); setFilter('moment'); }}>
+        <View style={[s.storyRing, author === shot.handle && s.selectedStory]}><Photo uri={shot.image} style={s.storyPhoto} /></View>
+        <Text numberOfLines={1} style={[s.storyName, author === shot.handle && { color: c.accent }]}>{shot.author}</Text>
+      </TouchableOpacity>)}
       {previewShots.map(shot => <TouchableOpacity key={shot.id} style={s.story}
         accessibilityRole="button" accessibilityLabel={`لقطات ${shot.author}`}
         accessibilityState={{ selected: author === shot.handle }}
@@ -54,16 +71,17 @@ export default function HomeScreen({ onCamera, onCafe, onNotifications, onSearch
       {[['all', 'لك'], ['moment', 'اللحظات'], ['post', 'البوستات']].map(([id, label]) =>
         <Pill key={id} label={label} active={filter === id} onPress={() => setFilter(id)} />)}
     </View></View>
-    <DemoNote>المنشورات الحقيقية تتحدّث مباشرة · اللحظات والإعجابات ما زالت تجريبية</DemoNote>
-    {postsLoading && <ActivityIndicator color={c.accent} accessibilityLabel="جارٍ تحميل المنشورات" />}
+    <DemoNote>المنشورات واللحظات الحقيقية تتحدّث مباشرة</DemoNote>
+    {(postsLoading || momentsLoading) && <ActivityIndicator color={c.accent} accessibilityLabel="جارٍ تحميل المحتوى" />}
     {!!postsError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{postsError}</Text>}
+    {!!momentsError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{momentsError}</Text>}
     {!!likeError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{likeError}</Text>}
     {author && <Pill label="عرض الجميع ×" onPress={() => setAuthor(null)} />}
     {shots.map(shot => {
       const cafe = previewCafes.find(x => x.id === shot.cafeId);
       const isLiked = !shot.isLive && liked.includes(shot.id);
       const post = shot.kind === 'post';
-      const locationLabel = cafe ? `${cafe.name} · ${cafe.city}` : shot.note || 'منشور LilShot';
+      const locationLabel = cafe ? `${cafe.name} · ${cafe.city}` : shot.note || (post ? 'منشور LilShot' : 'لحظة LilShot');
       return <View key={shot.id} style={[s.card, post && s.postCard]}>
         <Photo uri={shot.image} label={`قهوة ${shot.author}`} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={['rgba(34,23,17,0.12)', 'transparent', 'rgba(34,23,17,0.5)']} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
@@ -86,11 +104,12 @@ export default function HomeScreen({ onCamera, onCafe, onNotifications, onSearch
             <TouchableOpacity onPress={cafe ? () => onCafe(cafe) : undefined} disabled={!cafe} style={s.location} accessibilityRole={cafe ? 'button' : 'text'} accessibilityLabel={cafe ? `زيارة ${cafe.name}` : locationLabel}>
               <Ionicons name="location-outline" size={15} color={c.onPhoto} /><Text style={s.locationText}>{locationLabel}</Text>
             </TouchableOpacity>
-            {shot.isLive ? <PostLikeButton postId={shot.id} count={shot.likes} onError={setLikeError} /> : <TouchableOpacity onPress={() => toggleLiked(shot.id)} accessibilityRole="button"
+            <View style={s.cardActions}>{(shot.isLive || shot.isLiveMoment) && <ReportButton glass label="" targetType={shot.isLiveMoment ? 'moment' : 'post'} targetId={shot.id} targetOwnerUid={shot.authorUid} targetLabel={`${shot.isLiveMoment ? 'لحظة' : 'منشور'} ${shot.author}`} targetPreview={shot.caption} />}
+            {shot.isLiveMoment ? <View style={s.liveMoment}><Ionicons name="time-outline" size={17} color={c.onPhoto} /><Text style={s.likes}>لحظة</Text></View> : shot.isLive ? <PostLikeButton postId={shot.id} count={shot.likes} onError={setLikeError} /> : <TouchableOpacity onPress={() => toggleLiked(shot.id)} accessibilityRole="button"
               accessibilityLabel={`إعجاب بلقطة ${shot.author}`} accessibilityState={{ selected: isLiked }} style={s.like}>
               <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={22} color={isLiked ? '#FFB5AB' : c.onPhoto} />
               <Text style={s.likes}>{shot.likes + (isLiked ? 1 : 0)}</Text>
-            </TouchableOpacity>}
+            </TouchableOpacity>}</View>
           </View>
           {!post && <View style={s.track}><View style={[s.progress, { width: `${Math.max(0, Math.min(100, (shot.expiresAt - now) / (shot.durationHours * 3600000) * 100))}%` }]} /></View>}
         </BlurView>
@@ -129,6 +148,8 @@ const s = StyleSheet.create({
   locationText: { color: c.onPhoto, fontSize: 11, flexShrink: 1 },
   like: { minWidth: 63, minHeight: 44, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.13)' },
   likes: { color: c.onPhoto, fontSize: 12 },
+  liveMoment: { minWidth: 63, minHeight: 44, paddingHorizontal: 10, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.13)' },
+  cardActions: { flexDirection: 'row-reverse', alignItems: 'center', gap: 7 },
   track: { height: 2, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'flex-end', overflow: 'hidden' },
   progress: { height: 2, backgroundColor: '#E9C9A1' },
 });

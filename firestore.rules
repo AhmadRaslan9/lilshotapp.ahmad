@@ -175,6 +175,61 @@ service cloud.firestore {
       allow read, create: if admin();
       allow update, delete: if false;
     }
+    function reportTargetMatches(data) {
+      return ((data.targetType in ['account', 'cafe'])
+          && exists(/databases/$(database)/documents/users/$(data.targetId))
+          && data.targetOwnerUid == data.targetId
+          && ((data.targetType == 'account'
+                && get(/databases/$(database)/documents/users/$(data.targetId)).data.accountType == 'user')
+            || (data.targetType == 'cafe'
+                && get(/databases/$(database)/documents/users/$(data.targetId)).data.accountType == 'cafe')))
+        || (data.targetType == 'post'
+          && exists(/databases/$(database)/documents/posts/$(data.targetId))
+          && get(/databases/$(database)/documents/posts/$(data.targetId)).data.authorUid == data.targetOwnerUid)
+        || (data.targetType == 'moment'
+          && exists(/databases/$(database)/documents/moments/$(data.targetId))
+          && get(/databases/$(database)/documents/moments/$(data.targetId)).data.authorUid == data.targetOwnerUid);
+    }
+    function validNewReport(data, reportId) {
+      let reporter = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return data.keys().hasAll(['reporterUid','reporterName','reporterUsername','targetType','targetId','targetOwnerUid','targetLabel','targetPreview','reason','details','status','resolution','reviewedAt','reviewedByUid','createdAt','updatedAt'])
+        && data.keys().hasOnly(['reporterUid','reporterName','reporterUsername','targetType','targetId','targetOwnerUid','targetLabel','targetPreview','reason','details','status','resolution','reviewedAt','reviewedByUid','createdAt','updatedAt'])
+        && data.reporterUid == request.auth.uid
+        && data.reporterName == reporter.displayName
+        && data.reporterUsername == reporter.usernameLower
+        && data.targetType in ['account','cafe','post','moment']
+        && data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 160
+        && data.targetOwnerUid is string && data.targetOwnerUid.size() >= 1
+        && data.targetOwnerUid != request.auth.uid
+        && data.targetLabel is string && data.targetLabel.size() <= 120
+        && data.targetPreview is string && data.targetPreview.size() <= 1000
+        && data.reason in ['spam','inappropriate','impersonation','harassment','other']
+        && data.details is string && data.details.size() <= 300
+        && data.status == 'pending'
+        && data.resolution == ''
+        && data.reviewedAt == null
+        && data.reviewedByUid == ''
+        && data.createdAt == request.time
+        && data.updatedAt == request.time
+        && reportId == request.auth.uid + '_' + data.targetType + '_' + data.targetId
+        && reportTargetMatches(data);
+    }
+    match /reports/{reportId} {
+      allow get: if admin() || (signedIn() && resource.data.reporterUid == request.auth.uid);
+      allow list: if admin();
+      allow create: if signedIn() && validNewReport(request.resource.data, reportId);
+      allow update: if admin()
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','resolution','reviewedAt','reviewedByUid','updatedAt'])
+        && request.resource.data.status in ['resolved','dismissed']
+        && request.resource.data.resolution is string
+        && request.resource.data.resolution.size() >= 2
+        && request.resource.data.resolution.size() <= 500
+        && request.resource.data.reviewedAt == request.time
+        && request.resource.data.reviewedByUid == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
     function profileCanPublishPost(uid) {
       let profile = get(/databases/$(database)/documents/users/$(uid)).data;
       return owner(uid)
@@ -257,6 +312,60 @@ service cloud.firestore {
       allow delete: if admin() || (signedIn() && request.auth.uid == userUid
         && getAfter(/databases/$(database)/documents/posts/$(postId)).data.likesCount
           == get(/databases/$(database)/documents/posts/$(postId)).data.get('likesCount', 0) - 1);
+    }
+    function profileCanPublishMoment(uid) {
+      let profile = get(/databases/$(database)/documents/users/$(uid)).data;
+      return owner(uid)
+        && profile.accountStatus == 'active'
+        && profile.privacy in ['public', 'private']
+        && ((profile.accountType == 'user')
+          || (profile.accountType == 'cafe' && profile.plan in ['cafe_basic', 'cafe_pro']));
+    }
+    function validMoment(data) {
+      let profile = get(/databases/$(database)/documents/users/$(data.authorUid)).data;
+      return data.keys().hasAll(['authorUid','authorName','authorUsername','authorPhotoURL','authorVerified','authorType','imageURL','caption','locationName','visibility','status','durationHours','expiresAt','createdAt','updatedAt'])
+        && data.keys().hasOnly(['authorUid','authorName','authorUsername','authorPhotoURL','authorVerified','authorType','imageURL','caption','locationName','visibility','status','durationHours','expiresAt','createdAt','updatedAt'])
+        && data.authorUid == request.auth.uid
+        && data.authorName == profile.displayName
+        && data.authorUsername == profile.usernameLower
+        && data.authorPhotoURL == profile.photoURL
+        && data.authorVerified == profile.verified
+        && data.authorType == profile.accountType
+        && data.imageURL is string && data.imageURL.size() >= 9 && data.imageURL.size() <= 1000
+        && data.imageURL.matches('^https://.*')
+        && data.caption is string && data.caption.size() >= 1 && data.caption.size() <= 220
+        && data.locationName is string && data.locationName.size() <= 100
+        && ((profile.privacy == 'public' && data.visibility == 'public')
+          || (profile.privacy == 'private' && data.visibility == 'followers'))
+        && data.status == 'active'
+        && ((data.durationHours == 24 && profile.plan in ['plus', 'cafe_pro']
+            && data.expiresAt > request.time
+            && data.expiresAt <= request.time + duration.value(24, 'h'))
+          || (data.durationHours == 8 && profile.plan != 'plus' && profile.plan != 'cafe_pro'
+            && data.expiresAt > request.time
+            && data.expiresAt <= request.time + duration.value(8, 'h')));
+    }
+    function canReadMoment(data) {
+      return signedIn() && data.status == 'active'
+        && (data.visibility == 'public'
+          || (data.visibility == 'followers'
+            && exists(/databases/$(database)/documents/users/$(data.authorUid)/followers/$(request.auth.uid))));
+    }
+    match /moments/{momentId} {
+      allow get: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
+        || (canReadMoment(resource.data) && resource.data.expiresAt > request.time);
+      allow list: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
+        || canReadMoment(resource.data);
+      allow create: if signedIn()
+        && profileCanPublishMoment(request.resource.data.authorUid)
+        && validMoment(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if admin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && request.resource.data.status in ['active','hidden']
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid);
     }
     function cafeIsActive(cafeUid) {
       let cafe = get(/databases/$(database)/documents/users/$(cafeUid)).data;
