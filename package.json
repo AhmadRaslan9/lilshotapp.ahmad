@@ -8,7 +8,7 @@
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/firebase-config.test.mjs && node tests/coffee-preview.test.mjs && node tests/profile-model.test.mjs"
+    "test": "node tests/firebase-config.test.mjs && node tests/coffee-preview.test.mjs && node tests/profile-model.test.mjs && node tests/menu-model.test.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
@@ -19,7 +19,6 @@
     "expo-font": "~12.0.10",
     "expo-image": "~1.12.12",
     "expo-linear-gradient": "~13.0.2",
-    "expo-modules-core": "~1.12.26",
     "expo-status-bar": "~1.12.1",
     "firebase": "^10.12.0",
     "react": "18.2.0",

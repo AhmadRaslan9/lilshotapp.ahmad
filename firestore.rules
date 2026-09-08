@@ -43,5 +43,42 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower == username;
       allow update, delete: if admin();
     }
+    match /adminAudit/{entryId} {
+      allow read, create: if admin();
+      allow update, delete: if false;
+    }
+    function cafeIsActive(cafeUid) {
+      let cafe = get(/databases/$(database)/documents/users/$(cafeUid)).data;
+      return signedIn() && cafe.accountType == 'cafe'
+        && cafe.accountStatus == 'active'
+        && cafe.plan in ['cafe_basic', 'cafe_pro'];
+    }
+    function canManageCafe(cafeUid) {
+      return owner(cafeUid) && cafeIsActive(cafeUid);
+    }
+    function validMenuItem(data, cafeUid) {
+      return data.keys().hasAll(['ownerUid','name','description','price','category','available','imageURL','sortOrder','createdAt','updatedAt'])
+        && data.keys().hasOnly(['ownerUid','name','description','price','category','available','imageURL','sortOrder','createdAt','updatedAt'])
+        && data.ownerUid == cafeUid
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 60
+        && data.description is string && data.description.size() <= 200
+        && data.price is number && data.price >= 0 && data.price <= 10000
+        && data.category in ['قهوة ساخنة', 'قهوة باردة', 'حلويات', 'فطور', 'أخرى']
+        && data.available is bool
+        && data.imageURL is string && data.imageURL.size() <= 1000
+        && data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 9999;
+    }
+    match /cafes/{cafeUid}/menuItems/{itemId} {
+      allow read: if admin() || cafeIsActive(cafeUid);
+      allow create: if canManageCafe(cafeUid)
+        && validMenuItem(request.resource.data, cafeUid)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if (admin() || canManageCafe(cafeUid))
+        && validMenuItem(request.resource.data, cafeUid)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if admin() || canManageCafe(cafeUid);
+    }
   }
 }
