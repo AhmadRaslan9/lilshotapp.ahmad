@@ -13,6 +13,8 @@ import PostComposerScreen from './PostComposerScreen';
 import { deletePost, subscribeToUserPosts } from '../services/firebase/posts';
 import { deleteMoment, subscribeToOwnMoments } from '../services/firebase/moments';
 import { remainingLabel } from '../data/coffeePreview';
+import { useBlocking } from '../context/BlockingContext';
+import { blockingErrorMessage } from '../services/firebase/blocking';
 
 export default function ProfileScreen({ onMoment, onPlus }) {
   const { user } = useAuth();
@@ -122,6 +124,7 @@ export default function ProfileScreen({ onMoment, onPlus }) {
 function ProfileSettings({ onClose }) {
   const { user, signOut, authError } = useAuth();
   const { profile, updateProfile } = useProfile();
+  const { blockedProfiles, loading: blocksLoading, unblock } = useBlocking();
   const [name, setName] = useState(profile?.displayName || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [privacy, setPrivacy] = useState(profile?.privacy || 'public');
@@ -129,6 +132,8 @@ function ProfileSettings({ onClose }) {
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
   const [confirmClose, setConfirmClose] = useState(false);
+  const [blockedBusyId, setBlockedBusyId] = useState('');
+  const [blockingMessage, setBlockingMessage] = useState('');
   const inFlight = useRef(false);
   const busy = status === 'saving' || status === 'signing-out';
   const dirty = name.trim() !== saved.name || bio.trim() !== saved.bio || privacy !== saved.privacy;
@@ -184,6 +189,22 @@ function ProfileSettings({ onClose }) {
       <Text style={ui.subtitle}>{privacy === 'private' ? 'ملفك الشخصي خاص حالياً. مشاركة الملف مع المتابعين ستتوفر عند تفعيل المتابعة.' : 'يمكن للمستخدمين المسجّلين الاطلاع على ملفك العام.'}</Text>
       <Text style={s.bio}>طلبات المتابعة ستتوفر في مرحلة لاحقة.</Text>
     </View>
+    <View style={ui.panel}>
+      <Text style={ui.heading}>الحسابات المحظورة</Text>
+      <Text style={ui.subtitle}>يمكنك فك الحظر من هنا. لن تعود المتابعة تلقائيًا بعد فك الحظر.</Text>
+      {blocksLoading && <Text style={ui.subtitle}>جارٍ تحميل القائمة…</Text>}
+      {!blocksLoading && !blockedProfiles.length && <Text style={s.bio}>لا توجد حسابات محظورة.</Text>}
+      {blockedProfiles.map((blockedProfile) => <View key={blockedProfile.uid} style={s.blockedRow}>
+        <View style={s.blockedIdentity}>{blockedProfile.photoURL ? <Photo uri={blockedProfile.photoURL} style={s.blockedAvatar} /> : <View style={s.blockedAvatar}><Ionicons name={blockedProfile.accountType === 'cafe' ? 'storefront-outline' : 'person-outline'} size={20} color={c.accent} /></View>}<View style={{ flex: 1 }}><Text style={s.blockedName}>{blockedProfile.displayName}</Text><Text style={s.blockedUsername}>@{blockedProfile.username}</Text></View></View>
+        <Button label={blockedBusyId === blockedProfile.uid ? 'جارٍ الفك…' : 'فك الحظر'} secondary disabled={!!blockedBusyId} onPress={async () => {
+          setBlockedBusyId(blockedProfile.uid); setBlockingMessage('');
+          try { await unblock(blockedProfile.uid); setBlockingMessage(`تم فك حظر ${blockedProfile.displayName}.`); }
+          catch (error) { setBlockingMessage(blockingErrorMessage(error)); }
+          finally { setBlockedBusyId(''); }
+        }} />
+      </View>)}
+      {!!blockingMessage && <Text accessibilityRole="alert" style={[ui.subtitle, { color: blockingMessage.startsWith('تم ') ? c.accent : c.danger }]}>{blockingMessage}</Text>}
+    </View>
     {!!message && <View accessibilityLiveRegion="polite" style={ui.panel}><Text accessibilityRole={status === 'error' ? 'alert' : undefined} style={[ui.subtitle, { color: status === 'error' ? c.danger : c.accent }]}>{message}</Text></View>}
     {status === 'saving' && <Text accessibilityLiveRegion="polite" style={ui.subtitle}>جارٍ انتظار تأكيد الحفظ. إذا انقطع الاتصال سيكتمل الحفظ عند عودته.</Text>}
     <Button label={status === 'saving' ? 'جارٍ الحفظ…' : 'حفظ التغييرات'} icon="checkmark-outline" disabled={busy || !dirty} onPress={save} />
@@ -208,6 +229,11 @@ const s = StyleSheet.create({
   privacyOptions: { flexDirection: 'row-reverse', gap: 10 },
   privacyOption: { flex: 1, minHeight: 48, borderRadius: 24, borderWidth: 1, borderColor: c.line, flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center', gap: 8, backgroundColor: c.raised },
   privacySelected: { backgroundColor: c.dark, borderColor: c.dark },
+  blockedRow: { gap: 10, borderTopWidth: 1, borderColor: c.line, paddingTop: 13 },
+  blockedIdentity: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
+  blockedAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.cream, alignItems: 'center', justifyContent: 'center' },
+  blockedName: { color: c.text, fontSize: 14, fontWeight: '700', textAlign: 'right' },
+  blockedUsername: { color: c.accent, fontSize: 10, textAlign: 'right', writingDirection: 'ltr' },
   content: { paddingBottom: 144 },
   cover: { height: 196, margin: 10, marginBottom: 0, borderRadius: 27, overflow: 'hidden', backgroundColor: c.raised },
   coverTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },

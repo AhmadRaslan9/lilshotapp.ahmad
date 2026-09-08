@@ -1,8 +1,9 @@
 export function toPublicCafe(profile = {}, details = {}) {
-  const username = String(profile.username || '').trim();
+  const username = String(profile.usernameLower || profile.username || '').trim();
   return {
     id: profile.uid || profile.id,
     name: String(profile.displayName || 'مقهى LilShot').trim(),
+    username,
     latin: username ? username.toUpperCase() : 'LILSHOT CAFE',
     city: details.city || 'الرياض',
     district: details.district || 'الحي غير محدد',
@@ -16,6 +17,7 @@ export function toPublicCafe(profile = {}, details = {}) {
     followers: String(profile.followersCount || 0),
     image: details.coverURL || profile.photoURL || null,
     logoURL: details.logoURL || profile.photoURL || null,
+    profilePhotoURL: profile.photoURL || '',
     description: String(details.description || profile.bio || 'مقهى جديد على LilShot').trim(),
     verified: profile.verified === true,
     plan: profile.plan,

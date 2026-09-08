@@ -12,6 +12,7 @@ import { subscribeToPublicMoments } from '../services/firebase/moments';
 import { useAuth } from '../context/AuthContext';
 import PostLikeButton from '../components/coffee/PostLikeButton';
 import ReportButton from '../components/coffee/ReportButton';
+import { useBlocking } from '../context/BlockingContext';
 
 export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch }) {
   const [filter, setFilter] = useState('all');
@@ -25,6 +26,7 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
   const [momentsError, setMomentsError] = useState('');
   const [likeError, setLikeError] = useState('');
   const { user, isFirebaseConfigured } = useAuth();
+  const { excludedIds } = useBlocking();
   const { liked, toggleLiked } = useCoffeePreview();
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 30000);
@@ -38,8 +40,10 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
     if (!user?.uid || !isFirebaseConfigured || user.uid === 'demo-local') { setMomentsLoading(false); return undefined; }
     return subscribeToPublicMoments((value) => { setLiveMoments(value); setMomentsLoading(false); setMomentsError(''); }, () => { setMomentsLoading(false); setMomentsError('تعذّر تحميل اللحظات الحقيقية الآن.'); });
   }, [isFirebaseConfigured, user?.uid]);
-  const shots = visibleShots([...liveMoments, ...livePosts, ...previewShots], filter, author, now);
-  const liveStories = Array.from(new Map(liveMoments.filter((item) => item.expiresAt > now).map((item) => [item.authorUid, item])).values());
+  const visibleLiveMoments = liveMoments.filter((item) => !excludedIds.has(item.authorUid));
+  const visibleLivePosts = livePosts.filter((item) => !excludedIds.has(item.authorUid));
+  const shots = visibleShots([...visibleLiveMoments, ...visibleLivePosts, ...previewShots], filter, author, now);
+  const liveStories = Array.from(new Map(visibleLiveMoments.filter((item) => item.expiresAt > now).map((item) => [item.authorUid, item])).values());
 
   return <ScrollView style={ui.page} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={ui.between}>

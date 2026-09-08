@@ -2,7 +2,7 @@ import { collection, doc, limit, onSnapshot, query, where } from 'firebase/fires
 import { db } from './config';
 import { toPublicCafe } from './cafeModel';
 
-export function subscribeToActiveCafes(next, error) {
+export function subscribeToActiveCafes(next, error, excludedIds = new Set()) {
   const activeCafes = query(
     collection(db, 'users'),
     where('accountType', '==', 'cafe'),
@@ -15,7 +15,7 @@ export function subscribeToActiveCafes(next, error) {
   const details = new Map();
   const emit = () => next([...profiles.values()].map((profile) => toPublicCafe(profile, details.get(profile.uid))).sort((a, b) => a.name.localeCompare(b.name, 'ar')));
   const usersUnsub = onSnapshot(activeCafes, (snapshot) => {
-    profiles = new Map(snapshot.docs.map((item) => {
+    profiles = new Map(snapshot.docs.filter((item) => !excludedIds.has(item.id)).map((item) => {
       const profile = { id: item.id, ...item.data() };
       return [profile.uid || item.id, profile];
     }));

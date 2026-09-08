@@ -5,14 +5,18 @@ import { subscribeToPublicProfiles } from '../../services/firebase/publicProfile
 import { filterPublicProfiles } from '../../services/firebase/publicProfileModel';
 import { Empty, Photo, ui } from './Kit';
 import { coffee as c } from '../../theme/coffee';
+import { useBlocking } from '../../context/BlockingContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PeopleSearchPanel({ onOpen }) {
+  const { user } = useAuth();
+  const { excludedIds } = useBlocking();
   const [search, setSearch] = useState('');
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const hasSearch = search.trim().replace(/^@/, '').length > 0;
-  const visible = useMemo(() => filterPublicProfiles(profiles, search), [profiles, search]);
+  const visible = useMemo(() => filterPublicProfiles(profiles, search).filter((profile) => profile.uid !== user?.uid && !excludedIds.has(profile.uid)), [excludedIds, profiles, search, user?.uid]);
   useEffect(() => subscribeToPublicProfiles((value) => { setProfiles(value); setLoading(false); setError(''); }, (value) => {
     setLoading(false); setError(value.code === 'permission-denied' ? 'انشر قواعد Firestore الجديدة لتفعيل البحث.' : 'تعذّر تحميل الحسابات الآن.');
   }), []);

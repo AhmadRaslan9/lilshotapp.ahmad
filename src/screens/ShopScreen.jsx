@@ -8,8 +8,10 @@ import CafeCard from '../components/coffee/CafeCard';
 import { subscribeToActiveCafes } from '../services/firebase/cafes';
 import { filterPublicCafes } from '../services/firebase/cafeModel';
 import { STORE_CATEGORIES, STORE_CITIES } from '../services/firebase/storeModel';
+import { useBlocking } from '../context/BlockingContext';
 
 export default function ShopScreen({ onCafe, onPartner }) {
+  const { excludedIds } = useBlocking();
   const [city, setCity] = useState('الرياض');
   const [category, setCategory] = useState('الكل');
   const [query, setQuery] = useState('');
@@ -18,13 +20,13 @@ export default function ShopScreen({ onCafe, onPartner }) {
   const [liveLoading, setLiveLoading] = useState(true);
   const [liveError, setLiveError] = useState('');
   const cafes = filterCafes(previewCafes, city, category, query);
-  const visibleLiveCafes = useMemo(() => filterPublicCafes(liveCafes, query, city, category), [liveCafes, query, city, category]);
+  const visibleLiveCafes = useMemo(() => filterPublicCafes(liveCafes, query, city, category).filter((cafe) => !excludedIds.has(cafe.id)), [category, city, excludedIds, liveCafes, query]);
   useEffect(() => subscribeToActiveCafes((value) => {
     setLiveCafes(value); setLiveLoading(false); setLiveError('');
   }, (error) => {
     setLiveLoading(false);
     setLiveError(error.code === 'permission-denied' ? 'انشر قواعد Firestore الجديدة لعرض المقاهي.' : 'تعذّر تحميل المقاهي الحقيقية حالياً.');
-  }), []);
+  }, excludedIds), [excludedIds]);
   return <View style={ui.page}>
     <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <View style={ui.between}><Text style={ui.eyebrow}>COFFEE SHOPS</Text><Pill label={city} icon="location-outline" onPress={() => setCitiesOpen(true)} /></View>

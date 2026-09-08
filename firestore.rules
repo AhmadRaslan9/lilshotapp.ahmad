@@ -4,6 +4,10 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function owner(uid) { return signedIn() && request.auth.uid == uid; }
     function admin() { return signedIn() && request.auth.token.admin == true; }
+    function blockedBetween(firstUid, secondUid) {
+      return exists(/databases/$(database)/documents/users/$(firstUid)/blocks/$(secondUid))
+        || exists(/databases/$(database)/documents/users/$(secondUid)/blocks/$(firstUid));
+    }
     function validUsername(value) {
       return value is string && value.size() >= 3 && value.size() <= 20
         && value.matches('^[a-z0-9_][a-z0-9_.]{1,18}[a-z0-9_]$')
@@ -23,7 +27,8 @@ service cloud.firestore {
     }
     match /users/{uid} {
       allow get: if admin() || owner(uid) || (signedIn()
-        && resource.data.accountStatus == 'active');
+        && resource.data.accountStatus == 'active'
+        && !blockedBetween(request.auth.uid, uid));
       allow list: if admin() || (signedIn()
         && resource.data.accountStatus == 'active');
       allow create: if owner(uid) && validProfile(request.resource.data, uid)
@@ -35,13 +40,46 @@ service cloud.firestore {
         && request.resource.data.privacy in ['public', 'private'] && request.resource.data.updatedAt == request.time);
       allow delete: if admin();
     }
+    function validBlock(data, blockerUid, blockedUid) {
+      let target = get(/databases/$(database)/documents/users/$(blockedUid)).data;
+      return data.keys().hasAll(['blockerUid','blockedUid','blockedName','blockedUsername','blockedPhotoURL','blockedType','createdAt'])
+        && data.keys().hasOnly(['blockerUid','blockedUid','blockedName','blockedUsername','blockedPhotoURL','blockedType','createdAt'])
+        && blockerUid != blockedUid
+        && data.blockerUid == blockerUid
+        && data.blockedUid == blockedUid
+        && data.blockedName == target.displayName
+        && data.blockedUsername == target.usernameLower
+        && data.blockedPhotoURL == target.photoURL
+        && data.blockedType == target.accountType
+        && data.createdAt == request.time;
+    }
+    match /users/{blockerUid}/blocks/{blockedUid} {
+      allow read: if admin() || owner(blockerUid);
+      allow create: if owner(blockerUid)
+        && validBlock(request.resource.data, blockerUid, blockedUid)
+        && getAfter(/databases/$(database)/documents/users/$(blockedUid)/blockedBy/$(blockerUid)).data.blockerUid == blockerUid;
+      allow update: if false;
+      allow delete: if admin() || (owner(blockerUid)
+        && !existsAfter(/databases/$(database)/documents/users/$(blockedUid)/blockedBy/$(blockerUid)));
+    }
+    match /users/{blockedUid}/blockedBy/{blockerUid} {
+      allow read: if admin() || owner(blockedUid);
+      allow create: if owner(blockerUid)
+        && validBlock(request.resource.data, blockerUid, blockedUid)
+        && getAfter(/databases/$(database)/documents/users/$(blockerUid)/blocks/$(blockedUid)).data.blockedUid == blockedUid;
+      allow update: if false;
+      allow delete: if admin() || (owner(blockerUid)
+        && !existsAfter(/databases/$(database)/documents/users/$(blockerUid)/blocks/$(blockedUid)));
+    }
     function targetCanBeFollowed(targetUid) {
       let target = get(/databases/$(database)/documents/users/$(targetUid)).data;
-      return signedIn() && target.privacy == 'public' && target.accountStatus == 'active';
+      return signedIn() && target.privacy == 'public' && target.accountStatus == 'active'
+        && !blockedBetween(request.auth.uid, targetUid);
     }
     function targetAcceptsFollowRequests(targetUid) {
       let target = get(/databases/$(database)/documents/users/$(targetUid)).data;
-      return signedIn() && target.privacy == 'private' && target.accountStatus == 'active';
+      return signedIn() && target.privacy == 'private' && target.accountStatus == 'active'
+        && !blockedBetween(request.auth.uid, targetUid);
     }
     function validRelationship(data, followerUid, targetUid) {
       return data.keys().hasAll(['followerUid','targetUid','createdAt'])
@@ -56,6 +94,7 @@ service cloud.firestore {
         && (get(/databases/$(database)/documents/users/$(targetUid)).data.privacy == 'public'
           || exists(/databases/$(database)/documents/users/$(targetUid)/followers/$(request.auth.uid))));
       allow create: if signedIn()
+        && !blockedBetween(followerUid, targetUid)
         && ((request.auth.uid == followerUid && targetCanBeFollowed(targetUid))
           || (request.auth.uid == targetUid
             && exists(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(followerUid))
@@ -64,12 +103,18 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid)).data.followerUid == followerUid
         && getAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid)).data.targetUid == targetUid;
       allow update: if false;
-      allow delete: if admin() || (signedIn() && request.auth.uid == followerUid
-        && !existsAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid)));
+      allow delete: if admin() || (signedIn()
+        && !existsAfter(/databases/$(database)/documents/users/$(followerUid)/following/$(targetUid))
+        && ((request.auth.uid == followerUid
+              && existsAfter(/databases/$(database)/documents/users/$(followerUid)/blocks/$(targetUid)))
+          || (request.auth.uid == targetUid
+              && existsAfter(/databases/$(database)/documents/users/$(targetUid)/blocks/$(followerUid)))
+          || request.auth.uid == followerUid));
     }
     match /users/{followerUid}/following/{targetUid} {
       allow read: if admin() || owner(followerUid);
       allow create: if signedIn()
+        && !blockedBetween(followerUid, targetUid)
         && ((request.auth.uid == followerUid && targetCanBeFollowed(targetUid))
           || (request.auth.uid == targetUid
             && exists(/databases/$(database)/documents/users/$(targetUid)/followRequests/$(followerUid))
@@ -78,8 +123,13 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)).data.followerUid == followerUid
         && getAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)).data.targetUid == targetUid;
       allow update: if false;
-      allow delete: if admin() || (owner(followerUid)
-        && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid)));
+      allow delete: if admin() || (signedIn()
+        && !existsAfter(/databases/$(database)/documents/users/$(targetUid)/followers/$(followerUid))
+        && ((request.auth.uid == followerUid
+              && existsAfter(/databases/$(database)/documents/users/$(followerUid)/blocks/$(targetUid)))
+          || (request.auth.uid == targetUid
+              && existsAfter(/databases/$(database)/documents/users/$(targetUid)/blocks/$(followerUid)))
+          || request.auth.uid == followerUid));
     }
     function validFollowRequest(data, requesterUid, targetUid) {
       return data.keys().hasAll(['requesterUid','targetUid','createdAt'])
@@ -101,7 +151,8 @@ service cloud.firestore {
     }
     function validNotification(data, targetUid) {
       let actor = get(/databases/$(database)/documents/users/$(data.actorUid)).data;
-      return data.keys().hasAll(['type','actorUid','actorName','actorUsername','targetUid','postId','read','createdAt','readAt'])
+      return !blockedBetween(data.actorUid, targetUid)
+        && data.keys().hasAll(['type','actorUid','actorName','actorUsername','targetUid','postId','read','createdAt','readAt'])
         && data.keys().hasOnly(['type','actorUid','actorName','actorUsername','targetUid','postId','read','createdAt','readAt'])
         && data.type in ['follow','follow_request','follow_accepted','like']
         && data.actorUid == request.auth.uid
@@ -270,6 +321,13 @@ service cloud.firestore {
     }
     function canReadPublishedPost(data) {
       return signedIn() && data.status == 'published'
+        && !blockedBetween(request.auth.uid, data.authorUid)
+        && (data.visibility == 'public'
+          || (data.visibility == 'followers'
+            && exists(/databases/$(database)/documents/users/$(data.authorUid)/followers/$(request.auth.uid))));
+    }
+    function canListPublishedPost(data) {
+      return signedIn() && data.status == 'published'
         && (data.visibility == 'public'
           || (data.visibility == 'followers'
             && exists(/databases/$(database)/documents/users/$(data.authorUid)/followers/$(request.auth.uid))));
@@ -278,7 +336,7 @@ service cloud.firestore {
       allow get: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
         || canReadPublishedPost(resource.data);
       allow list: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
-        || canReadPublishedPost(resource.data);
+        || canListPublishedPost(resource.data);
       allow create: if signedIn()
         && profileCanPublishPost(request.resource.data.authorUid)
         && validPost(request.resource.data)
@@ -347,6 +405,13 @@ service cloud.firestore {
     }
     function canReadMoment(data) {
       return signedIn() && data.status == 'active'
+        && !blockedBetween(request.auth.uid, data.authorUid)
+        && (data.visibility == 'public'
+          || (data.visibility == 'followers'
+            && exists(/databases/$(database)/documents/users/$(data.authorUid)/followers/$(request.auth.uid))));
+    }
+    function canListMoment(data) {
+      return signedIn() && data.status == 'active'
         && (data.visibility == 'public'
           || (data.visibility == 'followers'
             && exists(/databases/$(database)/documents/users/$(data.authorUid)/followers/$(request.auth.uid))));
@@ -355,7 +420,7 @@ service cloud.firestore {
       allow get: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
         || (canReadMoment(resource.data) && resource.data.expiresAt > request.time);
       allow list: if admin() || (signedIn() && resource.data.authorUid == request.auth.uid)
-        || canReadMoment(resource.data);
+        || canListMoment(resource.data);
       allow create: if signedIn()
         && profileCanPublishMoment(request.resource.data.authorUid)
         && validMoment(request.resource.data)
@@ -378,7 +443,8 @@ service cloud.firestore {
     }
     function cafeIsDiscoverable(cafeUid) {
       let cafe = get(/databases/$(database)/documents/users/$(cafeUid)).data;
-      return cafeIsActive(cafeUid) && cafe.privacy == 'public';
+      return cafeIsActive(cafeUid) && cafe.privacy == 'public'
+        && !blockedBetween(request.auth.uid, cafeUid);
     }
     function cafeOwnerMayEdit(cafeUid) {
       let cafe = get(/databases/$(database)/documents/users/$(cafeUid)).data;

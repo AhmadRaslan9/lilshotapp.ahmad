@@ -15,6 +15,8 @@ import { useAuth } from '../context/AuthContext';
 import { followProfile, subscribeToFollowersCount, subscribeToFollowState, unfollowProfile } from '../services/firebase/relationships';
 import { relationshipErrorMessage } from '../services/firebase/relationshipModel';
 import ReportButton from '../components/coffee/ReportButton';
+import { useBlocking } from '../context/BlockingContext';
+import { blockingErrorMessage } from '../services/firebase/blocking';
 export default function CafeDetailScreen({ cafe, onClose }) {
   const [tab, setTab] = useState('المنيو');
   const [menu, setMenu] = useState(cafe.isLive ? [] : (cafe.menu || []));
@@ -26,11 +28,14 @@ export default function CafeDetailScreen({ cafe, onClose }) {
   const [followBusy, setFollowBusy] = useState(false);
   const [followError, setFollowError] = useState('');
   const [followersCount, setFollowersCount] = useState(Number(cafe.followersCount ?? cafe.followers ?? 0));
+  const [confirmBlock, setConfirmBlock] = useState(false);
   const { user, isFirebaseConfigured } = useAuth();
   const { requested, toggleRequest } = useCoffeePreview();
+  const { block, excludedIds } = useBlocking();
   const pending = requested.includes(cafe.id);
   const liveRelationship = cafe.isLive && isFirebaseConfigured && user?.uid && user.uid !== 'demo-local';
   const ownCafe = liveRelationship && user.uid === cafe.id;
+  useEffect(() => { if (!ownCafe && cafe.isLive && excludedIds.has(cafe.id)) onClose(); }, [cafe.id, cafe.isLive, excludedIds, ownCafe]);
   useEffect(() => {
     if (!cafe.isLive) return undefined;
     setMenuLoading(true); setMenuError('');
@@ -53,6 +58,15 @@ export default function CafeDetailScreen({ cafe, onClose }) {
     } catch (error) { setFollowError(relationshipErrorMessage(error)); }
     finally { setFollowBusy(false); }
   };
+  const confirmAndBlock = async () => {
+    if (!liveRelationship || ownCafe || followBusy) return;
+    setFollowBusy(true); setFollowError('');
+    try {
+      await block({ uid: cafe.id, displayName: cafe.name, username: cafe.username || '', photoURL: cafe.profilePhotoURL || '', accountType: 'cafe' });
+      setConfirmBlock(false); onClose();
+    } catch (error) { setFollowError(blockingErrorMessage(error)); }
+    finally { setFollowBusy(false); }
+  };
   useEffect(() => {
     if (!cafe.isLive) return undefined;
     return subscribeToStoreDetails(cafe.id, (value) => setDetails((old) => ({ ...old, ...(value || {}) })), () => {});
@@ -65,7 +79,7 @@ export default function CafeDetailScreen({ cafe, onClose }) {
     </View>
     <View style={{ paddingHorizontal: 22, gap: 22 }}>{cafe.isLive ? <DemoNote>حساب مقهى حقيقي · المنيو يتحدّث مباشرة</DemoNote> : <DemoNote>حساب مقهى تجريبي · بيانات وأسعار توضيحية</DemoNote>}
       <View style={s.stats}>{[[cafe.rating,'التقييم'],[String(cafe.reviews),'تقييم'],[followersCount,'متابع']].map(([value,label]) => <View key={label} style={s.stat}><Text style={s.value}>{value}</Text><Text style={ui.subtitle}>{label}</Text></View>)}</View>
-      {cafe.isLive ? <><Button label={ownCafe ? 'هذا متجرك' : followBusy ? 'جارٍ التحديث…' : following ? 'إلغاء المتابعة' : 'متابعة المقهى'} icon={following ? 'checkmark-circle-outline' : 'person-add-outline'} secondary={following || ownCafe} disabled={!liveRelationship || ownCafe || followLoading || followBusy} onPress={toggleLiveFollow} />{!ownCafe && <ReportButton targetType="cafe" targetId={cafe.id} targetOwnerUid={cafe.id} targetLabel={cafe.name} targetPreview={details.description || cafe.description || ''} label="تبليغ عن المقهى" />}{!!followError && <Text accessibilityRole="alert" style={s.error}>{followError}</Text>}</> : <><Button label={pending ? 'إلغاء طلب المتابعة' : 'طلب متابعة'} icon={pending ? 'time-outline' : 'add'} onPress={() => toggleRequest(cafe.id)} secondary={pending} /><Text style={[ui.subtitle,{ textAlign: 'center' }]}>{pending ? 'طلب تجريبي معلّق؛ لم يُرسل إلى متجر حقيقي.' : 'طلبات المتابعة تحتاج قبول صاحب الحساب.'}</Text></>}
+      {cafe.isLive ? <><Button label={ownCafe ? 'هذا متجرك' : followBusy ? 'جارٍ التحديث…' : following ? 'إلغاء المتابعة' : 'متابعة المقهى'} icon={following ? 'checkmark-circle-outline' : 'person-add-outline'} secondary={following || ownCafe} disabled={!liveRelationship || ownCafe || followLoading || followBusy} onPress={toggleLiveFollow} />{!ownCafe && <><ReportButton targetType="cafe" targetId={cafe.id} targetOwnerUid={cafe.id} targetLabel={cafe.name} targetPreview={details.description || cafe.description || ''} label="تبليغ عن المقهى" /><Button label="حظر المقهى" icon="ban-outline" secondary onPress={() => setConfirmBlock(true)} /></>}{confirmBlock && <View style={[ui.panel, { gap: 12 }]}><Text style={s.placeTitle}>حظر {cafe.name}؟</Text><Text style={ui.subtitle}>سيختفي المقهى ومنشوراته ولحظاته من حسابك، وستُلغى المتابعة بينكما.</Text><Button label={followBusy ? 'جارٍ الحظر…' : 'نعم، احظر المقهى'} icon="ban-outline" disabled={followBusy} onPress={confirmAndBlock} /><Button label="إلغاء" secondary disabled={followBusy} onPress={() => setConfirmBlock(false)} /></View>}{!!followError && <Text accessibilityRole="alert" style={s.error}>{followError}</Text>}</> : <><Button label={pending ? 'إلغاء طلب المتابعة' : 'طلب متابعة'} icon={pending ? 'time-outline' : 'add'} onPress={() => toggleRequest(cafe.id)} secondary={pending} /><Text style={[ui.subtitle,{ textAlign: 'center' }]}>{pending ? 'طلب تجريبي معلّق؛ لم يُرسل إلى متجر حقيقي.' : 'طلبات المتابعة تحتاج قبول صاحب الحساب.'}</Text></>}
       <Text style={ui.subtitle}>{details.description || cafe.description}</Text>
       <View style={ui.row}>{['المنيو','المكان','التقييم'].map(t => <Pill key={t} label={t} active={tab === t} onPress={() => setTab(t)} />)}</View>
       {tab === 'المنيو' && (menuLoading ? <ActivityIndicator color={c.accent} size="large" /> : menuError ? <Text style={s.error}>{menuError}</Text> : cafe.isLive ? (!menu.length ? <Empty icon="restaurant-outline" title="المنيو قيد التجهيز" text="صاحب المقهى لم يضف أصنافاً بعد." /> : groupedMenu.map((group) => <View key={group.category} style={ui.panel}><Text style={s.categoryTitle}>{group.category}</Text>{group.items.map((item, i) => <View key={item.id} style={[s.liveMenuRow, !item.available && s.unavailable, i === group.items.length - 1 && { borderBottomWidth: 0 }]}>{item.imageURL ? <Photo uri={item.imageURL} label={`صورة ${item.name}`} style={s.menuPhoto} /> : <View style={s.menuPhotoEmpty}><Ionicons name="cafe-outline" size={22} color={c.accent} /></View>}<View style={{ flex: 1, gap: 4 }}><View style={s.itemTitleRow}><Text style={s.menuName}>{item.name}</Text>{!item.available && <Text style={s.soldOut}>غير متوفر</Text>}</View>{!!item.description && <Text style={ui.subtitle}>{item.description}</Text>}<Text style={s.price}>{Number(item.price || 0).toFixed(2)} ر.س</Text></View></View>)}</View>)) : <View style={ui.panel}><Text style={ui.eyebrow}>BREWED WITH CARE</Text>{menu.map((item,i) => <View key={item.name} style={[ui.between,s.menuRow,i === menu.length-1 && { borderBottomWidth: 0 }]}><View style={{ flex: 1, gap: 4 }}><Text style={s.menuName}>{item.name}</Text><Text style={ui.subtitle}>{item.note}</Text></View><Text style={s.price}>{item.price} ر.س</Text></View>)}</View>)}

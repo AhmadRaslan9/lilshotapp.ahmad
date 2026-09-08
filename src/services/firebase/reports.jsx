@@ -1,4 +1,4 @@
-import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from './config';
 import { normalizeReportInput, reportDocumentId, validateReportInput } from './reportModel';
 
@@ -8,21 +8,17 @@ export async function createReport(user, profile, input) {
   const validation = validateReportInput(value, user.uid);
   if (validation) throw Object.assign(new Error(validation), { code: validation });
   const reportRef = doc(db, 'reports', reportDocumentId(user.uid, value.targetType, value.targetId));
-  await runTransaction(db, async (transaction) => {
-    const existing = await transaction.get(reportRef);
-    if (existing.exists()) throw Object.assign(new Error('Already reported'), { code: 'report/already-exists' });
-    transaction.set(reportRef, {
-      reporterUid: user.uid,
-      reporterName: profile?.displayName || 'مستخدم LilShot',
-      reporterUsername: profile?.usernameLower || profile?.username || '',
-      ...value,
-      status: 'pending',
-      resolution: '',
-      reviewedAt: null,
-      reviewedByUid: '',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+  await setDoc(reportRef, {
+    reporterUid: user.uid,
+    reporterName: profile?.displayName || 'مستخدم LilShot',
+    reporterUsername: profile?.usernameLower || profile?.username || '',
+    ...value,
+    status: 'pending',
+    resolution: '',
+    reviewedAt: null,
+    reviewedByUid: '',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
-  return (await getDoc(reportRef)).id;
+  return reportRef.id;
 }

@@ -8,25 +8,28 @@ import { acceptFollowRequest, rejectFollowRequest } from '../../services/firebas
 import { relationshipErrorMessage } from '../../services/firebase/relationshipModel';
 import { Button, Empty, ui } from './Kit';
 import { coffee as c } from '../../theme/coffee';
+import { useBlocking } from '../../context/BlockingContext';
 
 export default function NotificationsPanel() {
   const { user } = useAuth();
+  const { excludedIds } = useBlocking();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
-  const unread = useMemo(() => items.filter((item) => !item.read).length, [items]);
+  const visibleItems = useMemo(() => items.filter((item) => !excludedIds.has(item.actorUid)), [excludedIds, items]);
+  const unread = useMemo(() => visibleItems.filter((item) => !item.read).length, [visibleItems]);
   useEffect(() => {
     if (!user?.uid || user.uid === 'demo-local') { setLoading(false); return undefined; }
     return subscribeToNotifications(user.uid, (value) => { setItems(value); setLoading(false); setError(''); }, () => { setLoading(false); setError('تعذّر تحميل الإشعارات الآن.'); });
   }, [user?.uid]);
   if (loading) return <ActivityIndicator size="large" color={c.accent} accessibilityLabel="جارٍ تحميل الإشعارات" />;
-  if (!items.length) return <Empty icon="notifications-outline" title="كل شيء هادي هنا" text="إشعارات المتابعة والإعجاب الجديدة ستظهر هنا." />;
+  if (!visibleItems.length) return <Empty icon="notifications-outline" title="كل شيء هادي هنا" text="إشعارات المتابعة والإعجاب الجديدة ستظهر هنا." />;
   return <View style={s.wrap}>
     <View style={ui.between}><Text style={ui.subtitle}>{unread} غير مقروء</Text><Button label={busy ? 'جارٍ التحديث…' : 'تعليم الكل كمقروء'} secondary disabled={!unread || busy} onPress={async () => { setBusy(true); setError(''); try { await markAllNotificationsRead(user.uid, items); } catch { setError('تعذّر تحديث الإشعارات.'); } finally { setBusy(false); } }} /></View>
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-    {items.map((item) => <View key={item.id} style={[s.item, !item.read && s.unread]}>
+    {visibleItems.map((item) => <View key={item.id} style={[s.item, !item.read && s.unread]}>
       <TouchableOpacity disabled={item.read || item.type === 'follow_request'} accessibilityRole="button" accessibilityLabel={notificationText(item)} accessibilityState={{ disabled: item.read }} onPress={async () => { try { await markNotificationRead(user.uid, item.id); } catch { setError('تعذّر تعليم الإشعار كمقروء.'); } }} style={s.summary}>
         <View style={s.icon}><Ionicons name={notificationIcon(item.type)} size={20} color={item.type === 'like' ? '#B34F52' : c.accent} /></View>
         <View style={{ flex: 1, gap: 4 }}><Text style={s.text}>{notificationText(item)}</Text><Text style={s.handle}>@{item.actorUsername || 'lilshot'}</Text>{item.createdAtMs > 0 && <Text style={s.time}>{new Date(item.createdAtMs).toLocaleString('ar')}</Text>}</View>

@@ -13,9 +13,12 @@ import { subscribeToVisibleUserPosts } from '../services/firebase/posts';
 import { subscribeToVisibleUserMoments } from '../services/firebase/moments';
 import { remainingLabel } from '../data/coffeePreview';
 import ReportButton from '../components/coffee/ReportButton';
+import { useBlocking } from '../context/BlockingContext';
+import { blockingErrorMessage } from '../services/firebase/blocking';
 
 export default function UserProfileScreen({ initialProfile, onClose }) {
   const { user } = useAuth();
+  const { block, blockedIds, blockedByIds } = useBlocking();
   const [profile, setProfile] = useState(initialProfile);
   const [posts, setPosts] = useState([]);
   const [moments, setMoments] = useState([]);
@@ -28,10 +31,14 @@ export default function UserProfileScreen({ initialProfile, onClose }) {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [confirmBlock, setConfirmBlock] = useState(false);
   const uid = initialProfile.uid;
   const own = user?.uid === uid;
+  const blocked = blockedIds.has(uid);
+  const blockedBy = blockedByIds.has(uid);
   const privateProfile = profile?.privacy === 'private';
   const canSeePosts = own || !privateProfile || following;
+  useEffect(() => { if (!own && (blocked || blockedBy)) onClose(); }, [blocked, blockedBy, own, uid]);
   useEffect(() => subscribeToProfile(uid, (value) => { if (value?.accountStatus === 'active') setProfile(value); else onClose(); }, () => setError('تعذّر تحديث بيانات الحساب.')), [uid]);
   useEffect(() => {
     const stopFollowers = subscribeToFollowersCount(uid, setFollowers, () => {});
@@ -65,6 +72,13 @@ export default function UserProfileScreen({ initialProfile, onClose }) {
     catch (value) { setError(relationshipErrorMessage(value)); }
     finally { setBusy(false); }
   };
+  const confirmAndBlock = async () => {
+    if (own || busy) return;
+    setBusy(true); setError('');
+    try { await block(profile); setConfirmBlock(false); onClose(); }
+    catch (value) { setError(blockingErrorMessage(value)); }
+    finally { setBusy(false); }
+  };
   const name = profile.displayName || 'مستخدم LilShot';
   return <SafeAreaView style={ui.page}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={s.cover}><Photo uri={require('../assets/CoffeeShop.png')} style={StyleSheet.absoluteFill} /><LinearGradient colors={['rgba(20,15,12,.12)','rgba(35,24,18,.65)']} style={StyleSheet.absoluteFill} /><View style={s.back}><IconButton glass icon="arrow-forward" label="العودة للبحث" onPress={onClose} /></View></View>
@@ -75,7 +89,8 @@ export default function UserProfileScreen({ initialProfile, onClose }) {
       <View style={s.accountType}><Ionicons name={privateProfile ? 'lock-closed-outline' : profile.accountType === 'cafe' ? 'storefront-outline' : 'person-outline'} size={15} color={c.accent} /><Text style={s.bio}>{privateProfile ? 'حساب خاص' : profile.accountType === 'cafe' ? 'حساب مقهى' : 'حساب عام'}</Text></View>
       <View style={s.stats}><View style={s.stat}><Text style={s.statValue}>{followers}</Text><Text style={s.statLabel}>متابعون</Text></View><View style={s.stat}><Text style={s.statValue}>{posts.length}</Text><Text style={s.statLabel}>منشورات</Text></View></View>
       <View style={{ alignSelf: 'stretch' }}><Button label={own ? 'هذا حسابك' : busy || relationshipLoading ? 'جارٍ التحديث…' : following ? 'إلغاء المتابعة' : requested ? 'إلغاء طلب المتابعة' : privateProfile ? 'طلب متابعة' : 'متابعة'} icon={following ? 'checkmark-circle-outline' : requested ? 'time-outline' : 'person-add-outline'} secondary={following || requested || own} disabled={own || busy || relationshipLoading} onPress={toggleFollow} /></View>
-      {!own && <View style={{ alignSelf: 'stretch' }}><ReportButton targetType={profile.accountType === 'cafe' ? 'cafe' : 'account'} targetId={uid} targetOwnerUid={uid} targetLabel={name} targetPreview={profile.bio || ''} label="تبليغ عن الحساب" /></View>}
+      {!own && !blocked && !blockedBy && <View style={s.safetyActions}><ReportButton targetType={profile.accountType === 'cafe' ? 'cafe' : 'account'} targetId={uid} targetOwnerUid={uid} targetLabel={name} targetPreview={profile.bio || ''} label="تبليغ عن الحساب" /><Button label="حظر الحساب" icon="ban-outline" secondary onPress={() => setConfirmBlock(true)} /></View>}
+      {confirmBlock && <View style={[ui.panel, s.confirm]}><Text style={ui.heading}>حظر {name}؟</Text><Text style={ui.subtitle}>لن يرى أي منكما الآخر في البحث أو المحتوى، وستُحذف المتابعة وطلبات المتابعة بينكما.</Text><Button label={busy ? 'جارٍ الحظر…' : 'نعم، احظر الحساب'} icon="ban-outline" disabled={busy} onPress={confirmAndBlock} /><Button label="إلغاء" secondary disabled={busy} onPress={() => setConfirmBlock(false)} /></View>}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {!canSeePosts ? <View style={s.section}><Empty icon="lock-closed-outline" title="هذا الحساب خاص" text="أرسل طلب متابعة. بعد قبول الطلب ستظهر لحظاته ومنشوراته هنا." /></View> : <><View style={s.section}><Text style={ui.heading}>اللحظات</Text>{momentsLoading && <ActivityIndicator color={c.accent} />}{!momentsLoading && !moments.filter((item) => item.expiresAt > now).length && <Empty icon="time-outline" title="لا توجد لحظات الآن" text="لحظات هذا الحساب المنتهية تختفي تلقائيًا." />}{moments.filter((item) => item.expiresAt > now).map((moment) => <View key={moment.id} style={s.post}><Photo uri={moment.image} label={moment.caption} style={s.postImage} /><View style={s.postBody}><Text style={s.caption}>{moment.caption}</Text>{!!moment.note && <Text style={ui.subtitle}>{moment.note}</Text>}<View style={s.likeCount}><Ionicons name="time-outline" size={15} color={c.accent} /><Text style={ui.subtitle}>{remainingLabel(moment.expiresAt, now)}</Text></View><ReportButton targetType="moment" targetId={moment.id} targetOwnerUid={uid} targetLabel={`لحظة ${name}`} targetPreview={moment.caption} /></View></View>)}</View>
       <View style={s.section}><Text style={ui.heading}>المنشورات</Text>{loading && <ActivityIndicator color={c.accent} />}{!loading && !posts.length && <Empty icon="images-outline" title="لا توجد منشورات بعد" text="عندما ينشر هذا الحساب ستظهر منشوراته هنا." />}{posts.map((post) => <View key={post.id} style={s.post}><Photo uri={post.image} label={post.caption} style={s.postImage} /><View style={s.postBody}><Text style={s.caption}>{post.caption}</Text>{!!post.note && <Text style={ui.subtitle}>{post.note}</Text>}<View style={s.likeCount}><Ionicons name="heart" size={15} color="#B34F52" /><Text style={ui.subtitle}>{post.likes} إعجاب</Text></View><ReportButton targetType="post" targetId={post.id} targetOwnerUid={uid} targetLabel={`منشور ${name}`} targetPreview={post.caption} /></View></View>)}</View></>}
@@ -89,4 +104,5 @@ const s = StyleSheet.create({
   nameRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }, name: { color: c.text, fontSize: 27, fontWeight: '700' }, username: { color: c.accent, fontSize: 11, writingDirection: 'ltr' }, bio: { color: c.muted, fontSize: 13, lineHeight: 21, textAlign: 'center' }, accountType: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6 },
   stats: { alignSelf: 'stretch', flexDirection: 'row-reverse', paddingVertical: 12 }, stat: { flex: 1, alignItems: 'center', gap: 4 }, statValue: { color: c.text, fontSize: 25, fontWeight: '700' }, statLabel: { color: c.muted, fontSize: 11 }, error: { color: c.danger, textAlign: 'center' },
   section: { alignSelf: 'stretch', gap: 15, marginTop: 12 }, post: { overflow: 'hidden', borderRadius: 24, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line }, postImage: { height: 360, width: '100%' }, postBody: { padding: 16, gap: 8 }, caption: { color: c.text, fontSize: 16, fontWeight: '700', textAlign: 'right' }, likeCount: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6 },
+  safetyActions: { alignSelf: 'stretch', gap: 10 }, confirm: { alignSelf: 'stretch', gap: 12 },
 });
