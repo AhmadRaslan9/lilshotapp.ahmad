@@ -4,6 +4,9 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function owner(uid) { return signedIn() && request.auth.uid == uid; }
     function admin() { return signedIn() && request.auth.token.admin == true; }
+    function subscriptionActive(profile) {
+      return !profile.keys().hasAny(['subscriptionEndsAt']) || profile.subscriptionEndsAt == null || profile.subscriptionEndsAt > request.time;
+    }
     function blockedBetween(firstUid, secondUid) {
       return exists(/databases/$(database)/documents/users/$(firstUid)/blocks/$(secondUid))
         || exists(/databases/$(database)/documents/users/$(secondUid)/blocks/$(firstUid));
@@ -39,6 +42,21 @@ service cloud.firestore {
         && request.resource.data.bio is string && request.resource.data.bio.size() <= 160
         && request.resource.data.privacy in ['public', 'private'] && request.resource.data.updatedAt == request.time);
       allow delete: if admin();
+    }
+    function validInvite(data, ownerUid, slot) {
+      return slot in ['1','2','3']
+        && data.keys().hasAll(['ownerUid','slot','code','status','usedByUid','createdAt','usedAt'])
+        && data.keys().hasOnly(['ownerUid','slot','code','status','usedByUid','createdAt','usedAt'])
+        && data.ownerUid == ownerUid
+        && ((slot == '1' && data.slot == 1) || (slot == '2' && data.slot == 2) || (slot == '3' && data.slot == 3))
+        && data.code is string && data.code.size() >= 10 && data.code.size() <= 24
+        && data.status == 'active' && data.usedByUid == ''
+        && data.createdAt == request.time && data.usedAt == null;
+    }
+    match /users/{ownerUid}/invites/{slot} {
+      allow read: if admin() || owner(ownerUid);
+      allow create: if owner(ownerUid) && validInvite(request.resource.data, ownerUid, slot);
+      allow update, delete: if admin();
     }
     function validBlock(data, blockerUid, blockedUid) {
       let target = get(/databases/$(database)/documents/users/$(blockedUid)).data;
@@ -284,7 +302,7 @@ service cloud.firestore {
     function profileCanPublishPost(uid) {
       let profile = get(/databases/$(database)/documents/users/$(uid)).data;
       return owner(uid)
-        && profile.accountStatus == 'active'
+        && profile.accountStatus == 'active' && subscriptionActive(profile)
         && ((profile.accountType == 'user' && profile.plan == 'plus')
           || (profile.accountType == 'cafe' && profile.plan in ['cafe_basic', 'cafe_pro']));
     }
@@ -376,8 +394,8 @@ service cloud.firestore {
       return owner(uid)
         && profile.accountStatus == 'active'
         && profile.privacy in ['public', 'private']
-        && ((profile.accountType == 'user')
-          || (profile.accountType == 'cafe' && profile.plan in ['cafe_basic', 'cafe_pro']));
+        && (profile.accountType == 'user'
+          || (profile.accountType == 'cafe' && subscriptionActive(profile) && profile.plan in ['cafe_basic', 'cafe_pro']));
     }
     function validMoment(data) {
       let profile = get(/databases/$(database)/documents/users/$(data.authorUid)).data;
@@ -396,7 +414,7 @@ service cloud.firestore {
         && ((profile.privacy == 'public' && data.visibility == 'public')
           || (profile.privacy == 'private' && data.visibility == 'followers'))
         && data.status == 'active'
-        && ((data.durationHours == 24 && profile.plan in ['plus', 'cafe_pro']
+        && ((data.durationHours == 24 && subscriptionActive(profile) && profile.plan in ['plus', 'cafe_pro']
             && data.expiresAt > request.time
             && data.expiresAt <= request.time + duration.value(24, 'h'))
           || (data.durationHours == 8 && profile.plan != 'plus' && profile.plan != 'cafe_pro'
@@ -434,7 +452,7 @@ service cloud.firestore {
     }
     function cafeIsActive(cafeUid) {
       let cafe = get(/databases/$(database)/documents/users/$(cafeUid)).data;
-      return signedIn() && cafe.accountType == 'cafe'
+      return signedIn() && cafe.accountType == 'cafe' && subscriptionActive(cafe)
         && cafe.accountStatus == 'active'
         && cafe.plan in ['cafe_basic', 'cafe_pro'];
     }

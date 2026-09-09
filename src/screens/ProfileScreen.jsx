@@ -15,6 +15,9 @@ import { deleteMoment, subscribeToOwnMoments } from '../services/firebase/moment
 import { remainingLabel } from '../data/coffeePreview';
 import { useBlocking } from '../context/BlockingContext';
 import { blockingErrorMessage } from '../services/firebase/blocking';
+import { useLanguage } from '../context/LanguageContext';
+import InvitationsPanel from '../components/coffee/InvitationsPanel';
+import { hasActiveSubscription, subscriptionDaysLeft } from '../services/firebase/subscriptionModel';
 
 export default function ProfileScreen({ onMoment, onPlus }) {
   const { user } = useAuth();
@@ -36,12 +39,14 @@ export default function ProfileScreen({ onMoment, onPlus }) {
   const activeOwnMoments = ownMoments.filter((item) => item.expiresAt > now);
   const stats = [activeOwnMoments.length, followersCount, followingCount, profile?.points || 0];
   const isCafe = profile?.accountType === 'cafe';
-  const isPlus = profile?.plan === 'plus';
+  const subscriptionActive = hasActiveSubscription(profile);
+  const daysLeft = subscriptionDaysLeft(profile);
+  const isPlus = profile?.plan === 'plus' && subscriptionActive;
   const cafePlan = profile?.plan === 'cafe_pro' ? 'Pro' : profile?.plan === 'cafe_basic' ? 'Basic' : null;
-  const cafeLive = isCafe && profile?.accountStatus === 'active' && Boolean(cafePlan);
+  const cafeLive = isCafe && profile?.accountStatus === 'active' && Boolean(cafePlan) && subscriptionActive;
   const statusText = isCafe
-    ? (cafeLive ? `متجر ${cafePlan} نشط · جاهز للظهور` : 'المتجر بانتظار تفعيل الاشتراك')
-    : (isPlus ? 'LilShot Plus · لحظات حتى 24 ساعة' : 'لحظات تُلتقط الآن · 8 ساعات');
+    ? (cafeLive ? `متجر ${cafePlan} نشط${daysLeft === null ? '' : ` · ${daysLeft} يوم متبقٍ`}` : 'المتجر بانتظار تفعيل الاشتراك')
+    : (isPlus ? `LilShot Plus${daysLeft === null ? '' : ` · ${daysLeft} يوم متبقٍ`}` : 'لحظات تُلتقط الآن · 8 ساعات');
   const primaryAction = isCafe ? (cafeLive ? 'إدارة واجهة المتجر' : 'عرض حالة الاشتراك') : 'أضف لحظة';
   const primaryIcon = isCafe ? 'storefront-outline' : 'time-outline';
 
@@ -122,6 +127,7 @@ export default function ProfileScreen({ onMoment, onPlus }) {
 }
 
 function ProfileSettings({ onClose }) {
+  const { locale, setLocale, t } = useLanguage();
   const { user, signOut, authError } = useAuth();
   const { profile, updateProfile } = useProfile();
   const { blockedProfiles, loading: blocksLoading, unblock } = useBlocking();
@@ -170,6 +176,11 @@ function ProfileSettings({ onClose }) {
       <Button label="رجوع" secondary disabled={busy} icon="arrow-forward" onPress={close} />
     </View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.settingsContent}>
+    <View style={ui.panel}>
+      <Text style={ui.heading}>{t('language')}</Text>
+      <View style={s.privacyOptions}>{[['ar', t('arabic')], ['en', t('english')]].map(([value, label]) => <TouchableOpacity key={value} onPress={() => setLocale(value)} accessibilityRole="button" accessibilityState={{ selected: locale === value }} style={[s.privacyOption, locale === value && s.privacySelected]}><Text style={{ color: locale === value ? c.onPhoto : c.text, fontWeight: '700' }}>{label}</Text></TouchableOpacity>)}</View>
+    </View>
+    <View style={ui.panel}><InvitationsPanel /></View>
     <View style={ui.panel}>
       <Text style={ui.heading}>تفاصيلك</Text>
       <Text style={s.fieldLabel}>الاسم الظاهر</Text>

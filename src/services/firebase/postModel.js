@@ -1,3 +1,5 @@
+import { hasActiveSubscription } from './subscriptionModel.js';
+
 export const emptyPost = { imageURL: '', caption: '', locationName: '' };
 
 export function normalizePostInput(input = {}) {
@@ -17,7 +19,7 @@ export function validatePostInput(input) {
 }
 
 export function canPublishPermanentPost(profile) {
-  if (!profile || profile.accountStatus !== 'active' || !['public', 'private'].includes(profile.privacy)) return false;
+  if (!profile || profile.accountStatus !== 'active' || !hasActiveSubscription(profile) || !['public', 'private'].includes(profile.privacy)) return false;
   if (profile.accountType === 'cafe') return ['cafe_basic', 'cafe_pro'].includes(profile.plan);
   return profile.plan === 'plus';
 }

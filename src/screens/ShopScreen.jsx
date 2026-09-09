@@ -9,8 +9,10 @@ import { subscribeToActiveCafes } from '../services/firebase/cafes';
 import { filterPublicCafes } from '../services/firebase/cafeModel';
 import { STORE_CATEGORIES } from '../services/firebase/storeModel';
 import { useBlocking } from '../context/BlockingContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ShopScreen({ onCafe, onPartner }) {
+  const { t } = useLanguage();
   const { excludedIds } = useBlocking();
   const [city, setCity] = useState('الكل');
   const [category, setCategory] = useState('الكل');
@@ -30,15 +32,15 @@ export default function ShopScreen({ onCafe, onPartner }) {
   }, excludedIds), [excludedIds]);
   return <View style={ui.page}>
     <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <View style={ui.between}><BrandMark size={48} /><Pill label={city === 'الكل' ? 'كل المدن' : city} icon="location-outline" onPress={() => setCitiesOpen(true)} /></View>
-      <View><Text style={ui.title}>كوب جديد،\nومكان تحبّه.</Text><Text style={ui.subtitle}>تصفّح المقاهي، وشوف الحكاية وراء كل كوب.</Text></View>
+      <View style={ui.between}><BrandMark size={48} /><Pill label={city === 'الكل' ? t('allCities') : city} icon="location-outline" onPress={() => setCitiesOpen(true)} /></View>
+      <View><Text style={ui.title}>{t('shopHeadline')}</Text><Text style={ui.subtitle}>{t('shopSubtitle')}</Text></View>
       <View style={s.search}><Ionicons name="search-outline" size={20} color={c.muted} />
         <TextInput value={query} onChangeText={setQuery} placeholder="اسم المقهى أو الحي" accessibilityLabel="ابحث عن مقهى" placeholderTextColor={c.muted} style={s.input} />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[ui.row, { flexGrow: 1 }]}>
         {['الكل', ...STORE_CATEGORIES].map(label => <Pill key={label} label={label} active={category === label} onPress={() => setCategory(label)} />)}
       </ScrollView>
-      <View style={ui.between}><Text style={ui.heading}>مقاهي LilShot</Text><Text style={s.count}>{visibleLiveCafes.length} متاح</Text></View>
+      <View style={ui.between}><Text style={ui.heading}>{t('globalShops')}</Text><Text style={s.count}>{visibleLiveCafes.length} متاح</Text></View>
       {liveLoading && <ActivityIndicator color={c.accent} />}
       {!!liveError && <View style={s.liveMessage}><Text style={s.liveMessageText}>{liveError}</Text></View>}
       {!liveLoading && !liveError && !visibleLiveCafes.length && <View style={s.liveMessage}><Ionicons name="storefront-outline" size={23} color={c.accent} /><Text style={s.liveMessageText}>{liveCafes.length ? 'لا يوجد مقهى حقيقي يطابق البحث.' : 'لا يوجد مقهى عام ومفعّل بعد. فعّل متجرًا من لوحة الأدمن ليظهر هنا.'}</Text></View>}

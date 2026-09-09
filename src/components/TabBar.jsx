@@ -3,8 +3,10 @@ import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { coffee as c } from '../theme/coffee';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function TabBar({ activeTab, onChangeTab, onOpenCamera }) {
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const item = (id, icon, label) => {
     const active = activeTab === id;
@@ -20,9 +22,9 @@ export default function TabBar({ activeTab, onChangeTab, onOpenCamera }) {
         <Image source={require('../assets/nav-camera.png')} resizeMode="contain" style={s.cameraImage} />
       </TouchableOpacity>
       <View style={s.bar}>
-        {item('profile', 'person', 'حسابي')}
-        {item('shop', 'storefront', 'المقاهي')}
-        {item('home', 'home', 'الرئيسية')}
+        {item('profile', 'person', t('profile'))}
+        {item('shop', 'storefront', t('shops'))}
+        {item('home', 'home', t('home'))}
       </View>
     </View>
   </View>;

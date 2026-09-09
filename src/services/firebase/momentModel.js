@@ -1,12 +1,14 @@
+import { hasActiveSubscription } from './subscriptionModel.js';
+
 export const emptyMoment = { imageURL: '', caption: '', locationName: '' };
 
 export function momentDurationHours(profile) {
-  return profile?.plan === 'plus' || profile?.plan === 'cafe_pro' ? 24 : 8;
+  return hasActiveSubscription(profile) && (profile?.plan === 'plus' || profile?.plan === 'cafe_pro') ? 24 : 8;
 }
 
 export function canPublishMoment(profile) {
   if (!profile || profile.accountStatus !== 'active' || !['public', 'private'].includes(profile.privacy)) return false;
-  if (profile.accountType === 'cafe') return ['cafe_basic', 'cafe_pro'].includes(profile.plan);
+  if (profile.accountType === 'cafe') return hasActiveSubscription(profile) && ['cafe_basic', 'cafe_pro'].includes(profile.plan);
   return profile.accountType === 'user';
 }
 

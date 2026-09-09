@@ -6,12 +6,14 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../../context/LanguageContext';
 
 const backgroundImg = require('../../assets/CoffeeShop.png');
 
 // Welcome layout follows the owner's photo-led reference. Account actions keep
 // using AuthNavigator/Firebase; Apple remains unavailable until its flow exists.
 export default function WelcomeScreen({ onSignIn, onSignUp }) {
+  const { locale, setLocale, t } = useLanguage();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const compact = width < 360 || height < 700;
@@ -34,11 +36,12 @@ export default function WelcomeScreen({ onSignIn, onSignUp }) {
             bounces={false}
           >
             <View style={[styles.intro, compact && styles.introCompact]}>
+              <View style={styles.languages}><TouchableOpacity onPress={() => setLocale('ar')} style={[styles.language, locale === 'ar' && styles.languageActive]}><Text style={[styles.languageText, locale === 'ar' && styles.languageTextActive]}>AR</Text></TouchableOpacity><TouchableOpacity onPress={() => setLocale('en')} style={[styles.language, locale === 'en' && styles.languageActive]}><Text style={[styles.languageText, locale === 'en' && styles.languageTextActive]}>EN</Text></TouchableOpacity></View>
               <View style={styles.logoWrap}><Image source={require('../../assets/logo-mark.png')} resizeMode="contain" style={styles.logo} /></View>
               <Text accessibilityRole="header" style={[styles.headline, compact && styles.headlineCompact]}>
-                {'لحظتك الحلوة،\nتبدأ بقهوة.'}
+                {t('welcomeTitle')}
               </Text>
-              <Text style={styles.subtitle}>صوّر لحظتك، وشاركها مع أصحابك.</Text>
+              <Text style={styles.subtitle}>{t('welcomeSubtitle')}</Text>
             </View>
 
             <View style={styles.photoSpace} />
@@ -52,7 +55,7 @@ export default function WelcomeScreen({ onSignIn, onSignUp }) {
                   activeOpacity={0.85}
                   style={styles.createButton}
                 >
-                  <Text style={styles.createText}>إنشاء حساب جديد</Text>
+                  <Text style={styles.createText}>{t('createAccount')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={onSignIn}
@@ -61,14 +64,14 @@ export default function WelcomeScreen({ onSignIn, onSignUp }) {
                   activeOpacity={0.65}
                   style={styles.signInButton}
                 >
-                  <Text style={styles.signInText}>عندي حساب · تسجيل الدخول</Text>
+                  <Text style={styles.signInText}>{t('signIn')}</Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.divider} />
 
               <View style={styles.socialSection}>
-                <Text style={styles.socialLabel}>أو باستخدام</Text>
+                <Text style={styles.socialLabel}>{t('orWith')}</Text>
                 <View style={styles.appleGroup}>
                   <TouchableOpacity
                     disabled
@@ -98,6 +101,7 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 20 },
   intro: { alignItems: 'center', paddingTop: 32, paddingHorizontal: 4 },
   introCompact: { paddingTop: 20 },
+  languages: { flexDirection: 'row', gap: 5, alignSelf: 'flex-end', marginBottom: 8 }, language: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 15, backgroundColor: 'rgba(255,255,255,.55)' }, languageActive: { backgroundColor: '#090909' }, languageText: { color: '#756E66', fontSize: 10, fontWeight: '800' }, languageTextActive: { color: '#fff' },
   logoWrap: { width: 66, height: 66, borderRadius: 22, backgroundColor: '#090909', alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
   logo: { width: 50, height: 50 },
   headline: { color: '#352B29', fontSize: 43, lineHeight: 60, fontWeight: '800', textAlign: 'center', writingDirection: 'rtl' },
