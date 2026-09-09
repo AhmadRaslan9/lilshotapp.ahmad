@@ -3,11 +3,14 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOp
 import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '../context/ProfileContext';
 import { Button, IconButton, Photo, ui } from '../components/coffee/Kit';
-import { emptyStoreDetails, normalizeStoreDetails, STORE_CATEGORIES, STORE_CITIES, STORE_DAYS } from '../services/firebase/storeModel';
+import { emptyStoreDetails, normalizeStoreDetails, STORE_CATEGORIES, STORE_DAYS } from '../services/firebase/storeModel';
 import { saveStoreDetails, subscribeToStoreDetails } from '../services/firebase/stores';
 import { coffee as c } from '../theme/coffee';
 
 const errorMessages = {
+  'store/invalid-country': 'اكتب اسم الدولة من حرفين إلى 60 حرفاً.',
+  'store/invalid-city': 'اكتب اسم المدينة من حرفين إلى 80 حرفاً.',
+  'store/invalid-currency': 'اكتب رمز عملة عالمي من 3 أحرف مثل USD أو JOD.',
   'store/invalid-district': 'اكتب اسم الحي من حرفين إلى 60 حرفاً.',
   'store/invalid-address': 'اكتب عنواناً واضحاً من 3 إلى 160 حرفاً.',
   'store/invalid-description': 'وصف المقهى بحد أقصى 500 حرف.',
@@ -46,7 +49,9 @@ export default function CafeStoreSettingsScreen({ onClose }) {
   return <View style={ui.page}>
     <View style={s.header}><View><Text style={s.title}>معلومات المتجر</Text><Text style={s.subtitle}>ما يراه الزبائن عن المقهى</Text></View><IconButton icon="arrow-forward" label="العودة" onPress={onClose} /></View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-      <View style={ui.panel}><Text style={ui.heading}>الموقع</Text><Text style={s.label}>المدينة</Text><View style={s.choices}>{STORE_CITIES.map((city) => <TouchableOpacity key={city} onPress={() => change('city', city)} style={[s.choice, draft.city === city && s.choiceActive]}><Text style={[s.choiceText, draft.city === city && s.choiceTextActive]}>{city}</Text></TouchableOpacity>)}</View>
+      <View style={ui.panel}><Text style={ui.heading}>الموقع العالمي</Text><Text style={s.label}>الدولة</Text><TextInput value={draft.country} onChangeText={(value) => change('country', value)} maxLength={60} placeholder="مثال: الأردن أو United Kingdom" placeholderTextColor={c.muted} style={s.input} />
+        <Text style={s.label}>المدينة</Text><TextInput value={draft.city} onChangeText={(value) => change('city', value)} maxLength={80} placeholder="مثال: عمّان أو London" placeholderTextColor={c.muted} style={s.input} />
+        <Text style={s.label}>عملة المنيو</Text><TextInput value={draft.currency} onChangeText={(value) => change('currency', value.toUpperCase())} maxLength={3} autoCapitalize="characters" placeholder="USD" placeholderTextColor={c.muted} style={[s.input, s.ltr]} />
         <Text style={s.label}>الحي</Text><TextInput value={draft.district} onChangeText={(value) => change('district', value)} maxLength={60} placeholder="مثال: حطين" placeholderTextColor={c.muted} style={s.input} />
         <Text style={s.label}>العنوان</Text><TextInput value={draft.address} onChangeText={(value) => change('address', value)} maxLength={160} multiline placeholder="الشارع والمعلم القريب" placeholderTextColor={c.muted} style={[s.input, s.multiline]} />
         <Text style={s.label}>رابط الموقع على Google Maps</Text><TextInput value={draft.mapsURL} onChangeText={(value) => change('mapsURL', value)} autoCapitalize="none" keyboardType="url" placeholder="https://maps.app.goo.gl/..." placeholderTextColor={c.muted} style={[s.input, s.ltr]} /></View>

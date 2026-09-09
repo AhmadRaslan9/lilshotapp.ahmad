@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { coffee as c } from '../theme/coffee';
 import { previewShots, previewCafes, visibleShots, remainingLabel } from '../data/coffeePreview';
 import { useCoffeePreview } from '../context/CoffeePreviewContext';
-import { Photo, Pill, IconButton, DemoNote, Empty, ui } from '../components/coffee/Kit';
+import { Photo, Pill, IconButton, DemoNote, Empty, BrandMark, ui } from '../components/coffee/Kit';
 import { subscribeToPublicPosts } from '../services/firebase/posts';
 import { subscribeToPublicMoments } from '../services/firebase/moments';
 import { useAuth } from '../context/AuthContext';
@@ -48,7 +48,7 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
   return <ScrollView style={ui.page} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={ui.between}>
       <IconButton icon="search-outline" label="البحث عن الأشخاص" onPress={onSearch} />
-      <Text style={s.brand}>lilshot<Text style={{ color: c.accent }}>.</Text></Text>
+      <BrandMark size={50} />
       <IconButton icon="notifications-outline" label="الإشعارات" onPress={onNotifications} />
     </View>
     <View style={s.intro}><Text style={s.title}>يومك يستاهل لقطة.</Text><Text style={ui.subtitle}>قهوة، وأصحاب، ولحظات حلوة.</Text></View>
@@ -119,13 +119,12 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
         </BlurView>
       </View>;
     })}
-    {!shots.length && <Empty title="ما في لقطات بهالقسم" text="جرّب قسم ثاني أو ارجع لعرض الجميع." />}
+    {!shots.length && <Empty illustration={require('../assets/mascot-cup-hug.png')} title="ما في لقطات بهالقسم" text="جرّب قسم ثاني أو ارجع لعرض الجميع." />}
   </ScrollView>;
 }
 
 const s = StyleSheet.create({
   content: { padding: 18, paddingBottom: 144, gap: 18 },
-  brand: { color: c.text, fontSize: 29, fontWeight: '800', letterSpacing: -1.4 },
   intro: { gap: 2, marginTop: 4 },
   title: { color: c.text, fontSize: 24, lineHeight: 37, fontWeight: '700', textAlign: 'right' },
   stories: { flexDirection: 'row-reverse', gap: 20, flexGrow: 1, justifyContent: 'flex-start', paddingVertical: 4 },

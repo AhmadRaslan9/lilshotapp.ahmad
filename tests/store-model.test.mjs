@@ -4,7 +4,7 @@ import { emptyStoreDetails, normalizeStoreDetails, validateStoreDetails } from '
 
 const valid = {
   ...emptyStoreDetails,
-  city: 'الرياض', district: 'حطين', address: 'طريق الأمير محمد بن سلمان', category: 'قهوة مختصة',
+  country: 'الأردن', city: 'عمّان', currency: 'JOD', district: 'اللويبدة', address: 'شارع الباعونية', category: 'قهوة مختصة',
   description: 'قهوة هادئة', mapsURL: 'https://maps.app.goo.gl/example', coverURL: '', logoURL: '',
   hours: { ...emptyStoreDetails.hours, saturday: '7:00 ص - 12:00 ص', friday: 'مغلق' },
 };
@@ -20,6 +20,13 @@ test('store details require an address and secure map URL', () => {
   assert.equal(validateStoreDetails(valid), null);
   assert.equal(validateStoreDetails({ ...valid, address: '' }), 'store/invalid-address');
   assert.equal(validateStoreDetails({ ...valid, mapsURL: 'http://example.com' }), 'store/invalid-map');
+});
+
+test('global store details require a country, city and ISO currency', () => {
+  assert.equal(validateStoreDetails(valid), null);
+  assert.equal(validateStoreDetails({ ...valid, country: '' }), 'store/invalid-country');
+  assert.equal(validateStoreDetails({ ...valid, city: '' }), 'store/invalid-city');
+  assert.equal(normalizeStoreDetails({ ...valid, currency: 'eur' }).currency, 'EUR');
 });
 
 test('contact and social fields are not included in normalized store data', () => {

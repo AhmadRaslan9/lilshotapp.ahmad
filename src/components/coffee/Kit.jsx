@@ -9,12 +9,17 @@ export const ui = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 144, gap: 22 },
   row: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   between: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  title: { color: c.text, fontSize: 30, lineHeight: 43, fontWeight: '800', textAlign: 'right' },
+  title: { color: c.text, fontSize: 32, lineHeight: 43, fontWeight: '900', textAlign: 'right', letterSpacing: -1 },
   subtitle: { color: c.muted, fontSize: 13, lineHeight: 22, textAlign: 'right' },
   heading: { color: c.text, fontSize: 20, fontWeight: '700', textAlign: 'right' },
   eyebrow: { color: c.accent, fontSize: 10, fontWeight: '700', letterSpacing: 2 },
   panel: { backgroundColor: c.surface, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: c.line, gap: 12 },
 });
+export function BrandMark({ size = 42, inverted = false, style }) {
+  return <View accessibilityLabel="LilShot" style={[s.brand, inverted && s.brandLight, { width: size, height: size, borderRadius: size * 0.32 }, style]}>
+    <Image source={require('../../assets/logo-mark.png')} contentFit="contain" style={{ width: size * 0.72, height: size * 0.72 }} />
+  </View>;
+}
 export function IconButton({ icon, label, onPress, selected = false, glass = false, style }) {
   return <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
     accessibilityState={{ selected }} style={[s.icon, glass && s.glassIcon, selected && { backgroundColor: c.cream }, style]}>
@@ -42,8 +47,8 @@ export function Photo({ uri, style, label }) {
 export function DemoNote({ children = 'لقطات وأماكن تجريبية لاستكشاف التصميم' }) {
   return <View style={s.demo}><View style={s.dot} /><Text style={s.demoText}>{children}</Text></View>;
 }
-export function Empty({ icon = 'cafe-outline', title, text, action, onAction }) {
-  return <View style={s.empty}>{icon && <View style={s.emptyIcon}><Ionicons name={icon} size={30} color={c.accent} /></View>}
+export function Empty({ icon = 'cafe-outline', illustration, title, text, action, onAction }) {
+  return <View style={s.empty}>{illustration ? <Image source={illustration} contentFit="contain" style={s.emptyArt} /> : icon && <View style={s.emptyIcon}><Ionicons name={icon} size={30} color={c.accent} /></View>}
     <Text style={[ui.heading, { textAlign: 'center' }]}>{title}</Text>
     <Text style={[ui.subtitle, { textAlign: 'center', maxWidth: 280 }]}>{text}</Text>
     {action && <Button label={action} onPress={onAction} />}</View>;
@@ -57,6 +62,8 @@ export function Sheet({ visible, onClose, title, children }) {
   </Modal>;
 }
 const s = StyleSheet.create({
+  brand: { backgroundColor: c.dark, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  brandLight: { backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' },
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.line },
   glassIcon: { backgroundColor: c.glass, borderColor: 'rgba(255,255,255,0.2)' },
   pill: { minHeight: 44, paddingHorizontal: 17, borderRadius: 24, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', flexDirection: 'row-reverse', gap: 7, borderWidth: 1, borderColor: c.line },
@@ -69,6 +76,7 @@ const s = StyleSheet.create({
   demoText: { color: c.muted, fontSize: 10, textAlign: 'center', lineHeight: 17, flexShrink: 1 },
   empty: { padding: 24, alignItems: 'center', gap: 14 },
   emptyIcon: { width: 70, height: 70, borderRadius: 26, backgroundColor: c.raised, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  emptyArt: { width: 132, height: 112, marginBottom: 2 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'flex-end' },
   sheet: { width: '100%', maxWidth: 480, maxHeight: '94%', backgroundColor: c.bg, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', borderWidth: 1, borderColor: c.line },
   handle: { width: 40, height: 4, borderRadius: 3, backgroundColor: c.line, alignSelf: 'center', marginTop: 12 },

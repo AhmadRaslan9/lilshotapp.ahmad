@@ -463,10 +463,12 @@ service cloud.firestore {
         && hours.friday is string && hours.friday.size() <= 40;
     }
     function validStoreDetails(data, cafeUid) {
-      return data.keys().hasAll(['ownerUid','city','district','address','mapsURL','category','description','coverURL','logoURL','hours','createdAt','updatedAt'])
-        && data.keys().hasOnly(['ownerUid','city','district','address','mapsURL','category','description','coverURL','logoURL','hours','createdAt','updatedAt'])
+      return data.keys().hasAll(['ownerUid','country','city','currency','district','address','mapsURL','category','description','coverURL','logoURL','hours','createdAt','updatedAt'])
+        && data.keys().hasOnly(['ownerUid','country','city','currency','district','address','mapsURL','category','description','coverURL','logoURL','hours','createdAt','updatedAt'])
         && data.ownerUid == cafeUid
-        && data.city in ['الرياض','جدة','مكة','المدينة','الخبر','الدمام','الطائف','أبها','أخرى']
+        && data.country is string && data.country.size() >= 2 && data.country.size() <= 60
+        && data.city is string && data.city.size() >= 2 && data.city.size() <= 80
+        && data.currency is string && data.currency.matches('^[A-Z][A-Z][A-Z]$')
         && data.district is string && data.district.size() >= 2 && data.district.size() <= 60
         && data.address is string && data.address.size() >= 3 && data.address.size() <= 160
         && data.mapsURL is string && data.mapsURL.size() <= 1000

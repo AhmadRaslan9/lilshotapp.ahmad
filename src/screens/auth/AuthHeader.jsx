@@ -4,13 +4,13 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { colors, spacing } from '../../theme';
 
-const logo = require('../../assets/Logolilshot1.png');
+const logo = require('../../assets/logo-mark.png');
 
 export default function AuthHeader({ compact }) {
   return (
     <View style={[styles.container, compact && styles.compact]}>
-      <Image source={logo} style={styles.logo} contentFit="contain" />
-      <Text style={styles.title}>Revolutionizing{'\n'}Your Shots</Text>
+      <View style={styles.logoWrap}><Image source={logo} style={styles.logo} contentFit="contain" /></View>
+      <Text style={styles.title}>Your world.{'\n'}Your little shot.</Text>
     </View>
   );
 }
@@ -22,7 +22,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   compact: { marginBottom: spacing.xs },
-  logo: { width: 95, height: 95, marginBottom: spacing.sm, alignSelf: 'flex-start' },
+  logoWrap: { width: 82, height: 82, borderRadius: 25, backgroundColor: '#090909', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  logo: { width: 64, height: 64 },
   title: {
     fontSize: 28,
     fontWeight: '700',

@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { coffee as c } from '../theme/coffee';
@@ -10,32 +9,31 @@ export default function TabBar({ activeTab, onChangeTab, onOpenCamera }) {
   const item = (id, icon, label) => {
     const active = activeTab === id;
     return <TouchableOpacity onPress={() => onChangeTab(id)} accessibilityRole="tab"
-      accessibilityLabel={label} accessibilityState={{ selected: active }} style={s.item}>
-      <View style={[s.itemIcon, active && s.active]}>
-        <Ionicons name={active ? icon : `${icon}-outline`} size={20} color={active ? c.dark : '#E5DCD2'} />
-      </View>
-      <Text style={[s.label, active && { color: c.onPhoto }]}>{label}</Text>
+      accessibilityLabel={label} accessibilityState={{ selected: active }} style={[s.item, active && s.active]}>
+      {id === 'shop' ? <Image source={require('../assets/nav-coffee.png')} resizeMode="contain" style={[s.coffeeIcon, !active && { opacity: 0.72 }]} />
+        : <Ionicons name={active ? icon : `${icon}-outline`} size={21} color={active ? c.onPhoto : '#A9A9A9'} />}
     </TouchableOpacity>;
   };
   return <View style={[s.wrap, { bottom: Math.max(insets.bottom, 14) }]} pointerEvents="box-none">
-    <BlurView intensity={70} tint="dark" style={s.bar}>
-      {item('profile', 'person', 'حسابي')}
-      <TouchableOpacity onPress={onOpenCamera} style={s.camera} accessibilityRole="button"
-        accessibilityLabel="افتح الكاميرا" activeOpacity={0.8}>
-        <View style={s.cameraInner}><Ionicons name="camera" size={29} color={c.dark} /></View>
+    <View style={s.navigationRow}>
+      <TouchableOpacity onPress={onOpenCamera} style={s.camera} accessibilityRole="button" accessibilityLabel="افتح الكاميرا" activeOpacity={0.86}>
+        <Image source={require('../assets/nav-camera.png')} resizeMode="contain" style={s.cameraImage} />
       </TouchableOpacity>
-      {item('shop', 'storefront', 'المقاهي')}
-      {item('home', 'home', 'اللحظات')}
-    </BlurView>
+      <View style={s.bar}>
+        {item('profile', 'person', 'حسابي')}
+        {item('shop', 'storefront', 'المقاهي')}
+        {item('home', 'home', 'الرئيسية')}
+      </View>
+    </View>
   </View>;
 }
 const s = StyleSheet.create({
   wrap: { position: 'absolute', left: 14, right: 14, alignItems: 'center' },
-  bar: { width: '100%', maxWidth: 430, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 40, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,248,235,0.2)', backgroundColor: 'rgba(56,40,32,0.82)' },
-  item: { flex: 1, minWidth: 0, minHeight: 58, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  itemIcon: { width: 38, height: 34, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  active: { backgroundColor: c.onPhoto },
-  label: { color: '#DBCDC0', fontSize: 9, fontWeight: '500' },
-  camera: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#F6E6D0', padding: 4, marginHorizontal: 7 },
-  cameraInner: { flex: 1, borderRadius: 29, borderWidth: 1, borderColor: '#B99979', alignItems: 'center', justifyContent: 'center' },
+  navigationRow: { width: '100%', maxWidth: 430, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  bar: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', paddingHorizontal: 7, paddingVertical: 7, borderRadius: 38, backgroundColor: 'rgba(7,7,7,0.94)', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.24, shadowRadius: 16, elevation: 10 },
+  item: { flex: 1, minWidth: 0, height: 52, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
+  active: { backgroundColor: '#343434' },
+  coffeeIcon: { width: 25, height: 25 },
+  camera: { width: 66, height: 66, borderRadius: 33, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#B56A18', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 10 },
+  cameraImage: { width: 31, height: 31 },
 });

@@ -65,6 +65,6 @@ function Tabs() {
 }
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: c.bg },
-  modalBackdrop: { flex: 1, backgroundColor: '#E5E0D9', alignItems: 'center' },
+  modalBackdrop: { flex: 1, backgroundColor: '#090909', alignItems: 'center' },
   modalFrame: { flex: 1, width: '100%', maxWidth: 480 },
 });

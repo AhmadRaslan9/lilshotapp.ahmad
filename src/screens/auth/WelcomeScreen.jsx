@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, ImageBackground, ScrollView, TouchableOpacity,
+  View, Text, Image, ImageBackground, ScrollView, TouchableOpacity,
   StyleSheet, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,7 +34,7 @@ export default function WelcomeScreen({ onSignIn, onSignUp }) {
             bounces={false}
           >
             <View style={[styles.intro, compact && styles.introCompact]}>
-              <Text style={styles.wordmark}>lilshot<Text style={styles.brandDot}>.</Text></Text>
+              <View style={styles.logoWrap}><Image source={require('../../assets/logo-mark.png')} resizeMode="contain" style={styles.logo} /></View>
               <Text accessibilityRole="header" style={[styles.headline, compact && styles.headlineCompact]}>
                 {'لحظتك الحلوة،\nتبدأ بقهوة.'}
               </Text>
@@ -98,15 +98,15 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 20 },
   intro: { alignItems: 'center', paddingTop: 32, paddingHorizontal: 4 },
   introCompact: { paddingTop: 20 },
-  wordmark: { color: '#352B29', fontSize: 22, fontWeight: '800', letterSpacing: -0.8, marginBottom: 24 },
-  brandDot: { color: '#A56C47' },
+  logoWrap: { width: 66, height: 66, borderRadius: 22, backgroundColor: '#090909', alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
+  logo: { width: 50, height: 50 },
   headline: { color: '#352B29', fontSize: 43, lineHeight: 60, fontWeight: '800', textAlign: 'center', writingDirection: 'rtl' },
   headlineCompact: { fontSize: 35, lineHeight: 51 },
   subtitle: { color: '#554943', fontSize: 14, lineHeight: 25, textAlign: 'center', writingDirection: 'rtl', marginTop: 12 },
   photoSpace: { flexGrow: 1, minHeight: 80 },
   card: { backgroundColor: '#FFFEFC', borderRadius: 32, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)', shadowColor: '#332720', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.12, shadowRadius: 24, elevation: 5 },
   accountActions: { paddingHorizontal: 18, paddingTop: 18, paddingBottom: 3, gap: 7 },
-  createButton: { minHeight: 55, borderRadius: 30, backgroundColor: '#392C2C', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, paddingHorizontal: 16 },
+  createButton: { minHeight: 55, borderRadius: 30, backgroundColor: '#090909', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, paddingHorizontal: 16 },
   createText: { color: '#FFFDF9', fontSize: 15, fontWeight: '700', textAlign: 'center' },
   signInButton: { minHeight: 50, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 12 },
   signInText: { color: '#392F2D', fontSize: 14, fontWeight: '600', textAlign: 'center', writingDirection: 'rtl' },

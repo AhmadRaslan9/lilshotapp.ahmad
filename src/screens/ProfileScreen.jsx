@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { coffee as c } from '../theme/coffee';
-import { ui, Photo, Button, IconButton, Empty } from '../components/coffee/Kit';
+import { ui, Photo, Button, IconButton, Empty, BrandMark } from '../components/coffee/Kit';
 import CafeMenuScreen from './CafeMenuScreen';
 import CafeStoreSettingsScreen from './CafeStoreSettingsScreen';
 import { subscribeToFollowersCount, subscribeToFollowingCount } from '../services/firebase/relationships';
@@ -72,8 +72,8 @@ export default function ProfileScreen({ onMoment, onPlus }) {
   return <View style={ui.page}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={s.cover}>
       <Photo uri={require('../assets/CoffeeShop.png')} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(45,30,20,0.3)', 'rgba(45,30,20,0.04)', 'rgba(45,30,20,0.3)']} style={StyleSheet.absoluteFill} />
-      <View style={s.coverTop}><IconButton glass icon="settings-outline" label="إعدادات الحساب" onPress={() => setSettings(true)} /><Text style={s.coverLogo}>lilshot.</Text></View>
+      <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.12)', 'rgba(0,0,0,0.82)']} style={StyleSheet.absoluteFill} />
+      <View style={s.coverTop}><IconButton glass icon="settings-outline" label="إعدادات الحساب" onPress={() => setSettings(true)} /><BrandMark inverted size={48} /></View>
     </View>
     <View style={s.body}>
       <View style={s.avatar}>{user?.photoURL ? <Photo uri={user.photoURL} label="صورة حسابك" style={s.avatarPhoto} /> : <Text style={s.initial}>{Array.from(name)[0]}</Text>}</View>
@@ -111,7 +111,7 @@ export default function ProfileScreen({ onMoment, onPlus }) {
         {confirmPostId === post.id && <View style={s.deleteConfirm}><Text style={ui.subtitle}>متأكد من حذف المنشور نهائيًا؟</Text><View style={ui.row}><Button label="إلغاء" secondary onPress={() => setConfirmPostId(null)} /><Button label="نعم، احذف" onPress={async () => { try { await deletePost(post.id); setConfirmPostId(null); } catch { setPostError('تعذّر حذف المنشور.'); } }} /></View></View>}
       </View>)}</View> : <View style={s.galleryEmpty}>
         <View style={s.emptyFrames} pointerEvents="none"><View style={[s.frame, { transform: [{ rotate: '-9deg' }] }]} /><View style={[s.frame, s.frontFrame]}><Ionicons name={tab === 'moment' ? 'camera-outline' : 'images-outline'} size={34} color="#B39377" /></View></View>
-        <Empty icon={null} title={tab === 'moment' ? 'أول لحظة، بداية حكاية' : 'للقطات اللي تستاهل تبقى'}
+        <Empty illustration={require('../assets/mascot-blanket-coffee.png')} title={tab === 'moment' ? 'أول لحظة، بداية حكاية' : 'للقطات اللي تستاهل تبقى'}
           text={isCafe ? (cafeLive ? (tab === 'post' ? 'أنشئ أول منشور لمتجرك؛ سيظهر هنا وفي الرئيسية مباشرة.' : 'أضف أصناف المنيو لتظهر لزوار متجرك.') : 'بعد تفعيل الاشتراك من لوحة الإدارة ستتمكن من تجهيز منيو متجرك والظهور في الاستكشاف.') : tab === 'moment' ? 'أنشئ أول لحظة من رابط صورة؛ ستختفي بعد انتهاء مدتها.' : isPlus ? 'أنشئ أول منشور دائم؛ سيظهر هنا وفي الرئيسية مباشرة.' : 'المنشورات الدائمة متاحة مع LilShot Plus.'}
           action={isCafe ? undefined : tab === 'moment' ? undefined : 'تعرّف على Plus'} onAction={onPlus} />
       </View>}
@@ -235,29 +235,29 @@ const s = StyleSheet.create({
   blockedName: { color: c.text, fontSize: 14, fontWeight: '700', textAlign: 'right' },
   blockedUsername: { color: c.accent, fontSize: 10, textAlign: 'right', writingDirection: 'ltr' },
   content: { paddingBottom: 144 },
-  cover: { height: 196, margin: 10, marginBottom: 0, borderRadius: 27, overflow: 'hidden', backgroundColor: c.raised },
+  cover: { height: 370, margin: 10, marginBottom: 0, borderRadius: 34, overflow: 'hidden', backgroundColor: c.raised },
   coverTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },
   coverLogo: { color: c.onPhoto, fontSize: 22, fontWeight: '700', letterSpacing: -1 },
-  body: { paddingHorizontal: 22, marginTop: -47, alignItems: 'center', gap: 12 },
-  avatar: { width: 94, height: 94, borderRadius: 47, backgroundColor: c.cream, borderWidth: 5, borderColor: c.bg, alignItems: 'center', justifyContent: 'center' },
+  body: { paddingHorizontal: 22, marginTop: -235, alignItems: 'center', gap: 12 },
+  avatar: { width: 98, height: 98, borderRadius: 49, backgroundColor: c.cream, borderWidth: 3, borderColor: 'rgba(255,255,255,.8)', alignItems: 'center', justifyContent: 'center' },
   avatarPhoto: { width: 84, height: 84, borderRadius: 42 },
   initial: { color: c.accent, fontSize: 37, fontWeight: '600' },
-  name: { color: c.text, fontSize: 27, fontWeight: '700', textAlign: 'center', marginTop: 2 },
+  name: { color: c.onPhoto, fontSize: 31, fontWeight: '900', textAlign: 'center', marginTop: 2, textShadowColor: 'rgba(0,0,0,.35)', textShadowRadius: 8 },
   nameRow: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 2 },
   verified: { width: 19, height: 19, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2C9DEB' },
-  username: { color: c.accent, fontSize: 12, writingDirection: 'ltr' },
-  bio: { color: c.muted, fontSize: 13, textAlign: 'center' },
-  status: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: c.raised, borderRadius: 16 },
+  username: { color: c.cream, fontSize: 12, writingDirection: 'ltr' },
+  bio: { color: 'rgba(255,255,255,.86)', fontSize: 13, textAlign: 'center' },
+  status: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: 'rgba(0,0,0,.48)', borderRadius: 16 },
   statusDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: c.accent },
   statusText: { color: c.accent, fontSize: 10 },
   pendingStatus: { backgroundColor: '#FBF1E1' },
   pendingDot: { backgroundColor: '#C17C43' },
-  stats: { flexDirection: 'row-reverse', alignSelf: 'stretch', marginTop: 10, paddingVertical: 7 },
+  stats: { flexDirection: 'row-reverse', alignSelf: 'stretch', marginTop: 10, paddingVertical: 14, borderRadius: 22, backgroundColor: 'rgba(255,255,255,.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,.22)' },
   stat: { flex: 1, alignItems: 'center', gap: 5 },
-  statDivider: { borderRightWidth: 1, borderColor: c.line },
-  statValue: { color: c.text, fontSize: 26, fontWeight: '600' },
-  statLabel: { color: c.muted, fontSize: 11 },
-  waiting: { color: c.muted, fontSize: 10, textAlign: 'center', marginBottom: 6 },
+  statDivider: { borderRightWidth: 1, borderColor: 'rgba(255,255,255,.24)' },
+  statValue: { color: c.onPhoto, fontSize: 25, fontWeight: '800' },
+  statLabel: { color: 'rgba(255,255,255,.76)', fontSize: 10 },
+  waiting: { color: 'rgba(255,255,255,.7)', fontSize: 10, textAlign: 'center', marginBottom: 6 },
   actions: { alignSelf: 'stretch', flexDirection: 'row-reverse', gap: 10 },
   plus: { alignSelf: 'stretch', flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: c.cream, borderRadius: 24, padding: 17, gap: 13, marginVertical: 6 },
   plusIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#FAF5EC', alignItems: 'center', justifyContent: 'center' },
@@ -276,10 +276,10 @@ const s = StyleSheet.create({
   tabText: { color: c.muted, fontSize: 12, fontWeight: '600' },
   galleryEmpty: { alignSelf: 'stretch', paddingTop: 30 },
   postGrid: { alignSelf: 'stretch', gap: 16, paddingTop: 18 },
-  postCard: { overflow: 'hidden', borderRadius: 24, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line },
+  postCard: { overflow: 'hidden', borderRadius: 26, backgroundColor: '#111', borderWidth: 1, borderColor: '#242424' },
   postImage: { width: '100%', height: 330 },
   postBody: { padding: 16, gap: 10 },
-  postCaption: { color: c.text, fontSize: 16, fontWeight: '700', textAlign: 'right' },
+  postCaption: { color: c.onPhoto, fontSize: 16, fontWeight: '700', textAlign: 'right' },
   deleteConfirm: { padding: 16, borderTopWidth: 1, borderColor: c.line, backgroundColor: c.raised, gap: 12 },
   emptyFrames: { height: 120, width: 128, alignSelf: 'center' },
   frame: { position: 'absolute', left: 2, top: 0, width: 89, height: 112, borderRadius: 17, borderWidth: 1, borderColor: '#DCCDBC', backgroundColor: '#EEE5D9' },

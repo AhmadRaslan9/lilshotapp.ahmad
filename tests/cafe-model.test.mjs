@@ -17,3 +17,11 @@ test('public cafe search matches Arabic name and Latin username', () => {
   assert.deepEqual(filterPublicCafes(cafes, 'نواة').map((cafe) => cafe.id), ['2']);
   assert.deepEqual(filterPublicCafes(cafes, '', 'جدة', 'مقهى').map((cafe) => cafe.id), ['2']);
 });
+
+test('public cafe exposes global location and menu currency', () => {
+  const cafe = toPublicCafe({ uid: '3', displayName: 'Noir', username: 'noir' }, { country: 'France', city: 'Paris', currency: 'EUR' });
+  assert.equal(cafe.country, 'France');
+  assert.equal(cafe.city, 'Paris');
+  assert.equal(cafe.currency, 'EUR');
+  assert.deepEqual(filterPublicCafes([cafe], 'France').map((item) => item.id), ['3']);
+});

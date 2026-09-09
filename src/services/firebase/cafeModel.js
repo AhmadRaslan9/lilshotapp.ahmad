@@ -5,7 +5,9 @@ export function toPublicCafe(profile = {}, details = {}) {
     name: String(profile.displayName || 'مقهى LilShot').trim(),
     username,
     latin: username ? username.toUpperCase() : 'LILSHOT CAFE',
-    city: details.city || 'الرياض',
+    country: details.country || '',
+    city: details.city || 'Global',
+    currency: details.currency || 'USD',
     district: details.district || 'الحي غير محدد',
     address: details.address || '',
     mapsURL: details.mapsURL || '',
@@ -29,5 +31,5 @@ export function filterPublicCafes(cafes, query = '', city = 'الكل', category
   const needle = query.trim().toLowerCase();
   return cafes.filter((cafe) => (city === 'الكل' || cafe.city === city)
     && (category === 'الكل' || cafe.category === category)
-    && (!needle || `${cafe.name} ${cafe.latin} ${cafe.description} ${cafe.district} ${cafe.address}`.toLowerCase().includes(needle)));
+    && (!needle || `${cafe.name} ${cafe.latin} ${cafe.description} ${cafe.country} ${cafe.city} ${cafe.district} ${cafe.address}`.toLowerCase().includes(needle)));
 }
