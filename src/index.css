@@ -1,9 +1,14 @@
-:root { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif; font-size: 16px; line-height: normal; color: #342B29; background: #E5E0D9; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+@font-face { font-family: 'Kufam'; src: url('./assets/fonts/Kufam-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Kufam'; src: url('./assets/fonts/Kufam-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Kufam'; src: url('./assets/fonts/Kufam-Bold.ttf') format('truetype'); font-weight: 700 900; font-display: swap; }
+@font-face { font-family: 'Pacifico'; src: url('./assets/fonts/Pacifico-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+:root { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Tahoma, sans-serif; font-size: 16px; line-height: normal; color: #1D1D1F; background: #E8E8ED; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+html[lang='ar'] body, html[lang='ar'] input, html[lang='ar'] textarea { font-family: 'Kufam', sans-serif; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
 body { display: flex; justify-content: center; }
-#root { display: flex; flex-direction: column; width: 100%; max-width: 480px; height: 100%; height: 100dvh; background: #FAF8F4; overflow: hidden; box-shadow: 0 0 80px #392C2C1A; }
+#root { display: flex; flex-direction: column; width: 100%; max-width: 480px; height: 100%; height: 100dvh; background: #F2F2F7; overflow: hidden; box-shadow: 0 0 80px #1D1D1F1A; }
 input { outline: none; }
 [role='button'], [role='tab'], input { -webkit-tap-highlight-color: transparent; }
-[role='button']:focus-visible, [role='tab']:focus-visible, input:focus-visible { outline: 2px solid #9C6544; outline-offset: 3px; }
-@media (min-width: 600px) { #root { border-left: 1px solid #DAD1C7; border-right: 1px solid #DAD1C7; } }
+[role='button']:focus-visible, [role='tab']:focus-visible, input:focus-visible { outline: 2px solid #A35F32; outline-offset: 3px; }
+@media (min-width: 600px) { #root { border-left: 1px solid #D1D1D6; border-right: 1px solid #D1D1D6; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }

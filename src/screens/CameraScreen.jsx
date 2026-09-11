@@ -4,6 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { coffee as c } from '../theme/coffee';
+import { PressableScale } from '../components/coffee/Motion';
 
 export default function CameraScreen({ onClose }) {
   const camera = useRef(null);
@@ -91,9 +92,9 @@ export default function CameraScreen({ onClose }) {
   };
   const shutterDisabled = !active || !ready || capturing || !!photo;
 
-  const tool = (icon, label, onPress, disabled = false) => <TouchableOpacity onPress={onPress} disabled={disabled} style={s.tool} accessibilityRole="button" accessibilityLabel={label}>
+  const tool = (icon, label, onPress, disabled = false) => <PressableScale onPress={onPress} disabled={disabled} style={s.tool} accessibilityRole="button" accessibilityLabel={label}>
     <Ionicons name={icon} size={21} color="#fff" />
-  </TouchableOpacity>;
+  </PressableScale>;
 
   return <View style={s.screen}>
     <View style={[s.viewfinder, { marginTop: Math.max(insets.top, 10), marginBottom: Math.max(insets.bottom, 10) }]}>
@@ -124,8 +125,8 @@ export default function CameraScreen({ onClose }) {
 
         <SafeAreaView style={StyleSheet.absoluteFill} pointerEvents="box-none">
           <View style={s.topBar}>
-            <TouchableOpacity onPress={onClose} style={s.glassButton} accessibilityRole="button" accessibilityLabel="إغلاق الكاميرا"><Ionicons name="close" size={22} color="#fff" /></TouchableOpacity>
-            <TouchableOpacity onPress={() => setFlash(value => !value)} style={[s.flash, flash && s.flashOn]} accessibilityRole="button" accessibilityLabel="الفلاش"><Ionicons name="flash" size={21} color={flash ? c.dark : '#fff'} /></TouchableOpacity>
+            <PressableScale onPress={onClose} style={s.glassButton} accessibilityRole="button" accessibilityLabel="إغلاق الكاميرا"><Ionicons name="close" size={22} color="#fff" /></PressableScale>
+            <PressableScale onPress={() => setFlash(value => !value)} style={[s.flash, flash && s.flashOn]} accessibilityRole="button" accessibilityLabel="الفلاش"><Ionicons name="flash" size={21} color={flash ? c.dark : '#fff'} /></PressableScale>
             <View style={{ width: 46 }} />
           </View>
           {!photo && permission?.granted && <View style={s.tools}>
@@ -144,9 +145,9 @@ export default function CameraScreen({ onClose }) {
             </View> : <>
               <View style={s.captureRow}>
                 <TouchableOpacity disabled style={s.thumb} accessibilityLabel="الاستديو قريبًا"><Ionicons name="images-outline" size={22} color="#fff" /></TouchableOpacity>
-                <TouchableOpacity onPress={takeShot} disabled={shutterDisabled} style={[s.shutter, shutterDisabled && s.disabled]} accessibilityRole="button" accessibilityLabel="التقاط الصورة">
+                <PressableScale onPress={takeShot} disabled={shutterDisabled} style={[s.shutter, shutterDisabled && s.disabled]} accessibilityRole="button" accessibilityLabel="التقاط الصورة">
                   <View style={s.shutterInner}>{capturing && <ActivityIndicator color={c.dark} />}</View>
-                </TouchableOpacity>
+                </PressableScale>
                 <View style={s.timerBadge}><Text style={s.timerText}>{timer ? `${timer}s` : 'LIL'}</Text></View>
               </View>
               <View style={s.modes}><Text style={s.mode}>لحظة</Text><Text style={[s.mode, s.activeMode]}>صورة</Text><Text style={s.mode}>منشور</Text></View>
@@ -158,32 +159,32 @@ export default function CameraScreen({ onClose }) {
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#050505', paddingHorizontal: 8 },
-  viewfinder: { flex: 1, maxWidth: 520, width: '100%', alignSelf: 'center', borderRadius: 30, overflow: 'hidden', backgroundColor: '#252525' },
+  screen: { flex: 1, backgroundColor: '#000000', paddingHorizontal: 8 },
+  viewfinder: { flex: 1, maxWidth: 520, width: '100%', alignSelf: 'center', borderRadius: 28, overflow: 'hidden', backgroundColor: '#1C1C1E', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,.22)' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
-  title: { color: c.dark, fontSize: 21, fontWeight: '700', textAlign: 'center' },
-  message: { color: '#655A50', fontSize: 14, lineHeight: 23, textAlign: 'center', maxWidth: 300 },
+  title: { color: c.onPhoto, fontSize: 22, fontWeight: '700', textAlign: 'center', letterSpacing: -0.3 },
+  message: { color: 'rgba(255,255,255,.7)', fontSize: 14, lineHeight: 23, textAlign: 'center', maxWidth: 300 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  glassButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,.4)', alignItems: 'center', justifyContent: 'center' },
-  flash: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,.46)', alignItems: 'center', justifyContent: 'center' },
+  glassButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(28,28,30,.62)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,.28)', alignItems: 'center', justifyContent: 'center' },
+  flash: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(28,28,30,.62)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,.28)', alignItems: 'center', justifyContent: 'center' },
   flashOn: { backgroundColor: '#fff' },
   tools: { position: 'absolute', right: 14, top: 76, gap: 9 },
-  tool: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(0,0,0,.46)', alignItems: 'center', justifyContent: 'center' },
+  tool: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(28,28,30,.62)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,.24)', alignItems: 'center', justifyContent: 'center' },
   countdown: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   countdownText: { color: '#fff', fontSize: 92, fontWeight: '900', textShadowColor: 'rgba(0,0,0,.5)', textShadowRadius: 18 },
   bottom: { position: 'absolute', left: 14, right: 14, bottom: 14, gap: 14 },
   captureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
-  shutter: { width: 82, height: 82, borderRadius: 41, backgroundColor: 'rgba(255,255,255,.35)', borderWidth: 2, borderColor: '#fff', padding: 6 },
-  shutterInner: { flex: 1, borderRadius: 34, backgroundColor: '#FFF9ED', alignItems: 'center', justifyContent: 'center' },
+  shutter: { width: 82, height: 82, borderRadius: 41, backgroundColor: 'rgba(255,255,255,.24)', borderWidth: 3, borderColor: '#fff', padding: 6 },
+  shutterInner: { flex: 1, borderRadius: 34, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   thumb: { width: 46, height: 46, borderRadius: 15, backgroundColor: 'rgba(0,0,0,.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,.35)', alignItems: 'center', justifyContent: 'center' },
   timerBadge: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,.46)', alignItems: 'center', justifyContent: 'center' },
   timerText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  modes: { alignSelf: 'center', flexDirection: 'row-reverse', gap: 3, padding: 5, backgroundColor: 'rgba(0,0,0,.58)', borderRadius: 25 },
-  mode: { color: '#C9C9C9', fontSize: 11, minWidth: 68, textAlign: 'center', paddingVertical: 8, borderRadius: 18 },
+  modes: { alignSelf: 'center', flexDirection: 'row-reverse', gap: 3, padding: 4, backgroundColor: 'rgba(28,28,30,.72)', borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,.22)' },
+  mode: { color: '#C7C7CC', fontSize: 11, minWidth: 68, textAlign: 'center', paddingVertical: 8, borderRadius: 18 },
   activeMode: { color: c.dark, backgroundColor: '#fff', fontWeight: '800' },
   disabled: { opacity: 0.5 },
-  action: { minHeight: 50, paddingHorizontal: 23, paddingVertical: 14, borderRadius: 27, backgroundColor: c.dark, alignItems: 'center', justifyContent: 'center' },
-  actionText: { color: c.onPhoto, fontSize: 14, fontWeight: '600' },
+  action: { minHeight: 50, paddingHorizontal: 23, paddingVertical: 14, borderRadius: 16, backgroundColor: c.cream, alignItems: 'center', justifyContent: 'center' },
+  actionText: { color: c.dark, fontSize: 14, fontWeight: '700' },
   secondaryAction: { minHeight: 50, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 27, backgroundColor: '#E9DFD1' },
   secondaryText: { color: c.dark, fontSize: 14, fontWeight: '600' },
   review: { flexDirection: 'row-reverse', gap: 10, justifyContent: 'center' },

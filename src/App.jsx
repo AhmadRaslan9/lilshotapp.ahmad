@@ -5,13 +5,14 @@ import { ProfileProvider } from './context/ProfileContext';
 import { BlockingProvider } from './context/BlockingContext';
 import { LanguageProvider } from './context/LanguageContext';
 import RootNavigator from './navigation/RootNavigator.jsx';
+import AppFonts from './components/AppFonts';
 
 export default function App() {
   return (
-    <SafeAreaProvider><LanguageProvider>
+    <AppFonts><SafeAreaProvider><LanguageProvider>
       <AuthProvider>
         <ProfileProvider><BlockingProvider><RootNavigator /></BlockingProvider></ProfileProvider>
       </AuthProvider>
-    </LanguageProvider></SafeAreaProvider>
+    </LanguageProvider></SafeAreaProvider></AppFonts>
   );
 }

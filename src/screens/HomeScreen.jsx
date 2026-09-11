@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { coffee as c } from '../theme/coffee';
 import { previewShots, previewCafes, visibleShots, remainingLabel } from '../data/coffeePreview';
@@ -13,6 +14,8 @@ import { useAuth } from '../context/AuthContext';
 import PostLikeButton from '../components/coffee/PostLikeButton';
 import ReportButton from '../components/coffee/ReportButton';
 import { useBlocking } from '../context/BlockingContext';
+import { useLanguage } from '../context/LanguageContext';
+import { FadeInView, PressableScale } from '../components/coffee/Motion';
 
 export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch }) {
   const [filter, setFilter] = useState('all');
@@ -28,6 +31,7 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
   const { user, isFirebaseConfigured } = useAuth();
   const { excludedIds } = useBlocking();
   const { liked, toggleLiked } = useCoffeePreview();
+  const { t } = useLanguage();
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(tick);
@@ -51,11 +55,14 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
       <BrandMark size={50} />
       <IconButton icon="notifications-outline" label="الإشعارات" onPress={onNotifications} />
     </View>
-    <View style={s.intro}><Text style={s.title}>يومك يستاهل لقطة.</Text><Text style={ui.subtitle}>قهوة، وأصحاب، ولحظات حلوة.</Text></View>
+    <FadeInView delay={40} style={s.intro}>
+      <Image source={require('../assets/mascot-blanket-coffee.png')} contentFit="contain" style={s.introArt} />
+      <View style={s.introCopy}><Text style={s.title}>{t('homeGreeting')}</Text><Text style={ui.subtitle}>{t('homeGreetingSub')}</Text></View>
+    </FadeInView>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.stories}>
-      <TouchableOpacity style={s.story} onPress={onMoment} accessibilityRole="button" accessibilityLabel="أضف لحظة">
-        <View style={s.addStory}><Ionicons name="add" size={28} color={c.accent} /></View><Text style={s.storyName}>لحظتك</Text>
-      </TouchableOpacity>
+      <PressableScale style={s.story} onPress={onMoment} accessibilityRole="button" accessibilityLabel={t('yourMoment')}>
+        <View style={s.addStory}><Ionicons name="add" size={28} color={c.accent} /></View><Text style={s.storyName}>{t('yourMoment')}</Text>
+      </PressableScale>
       {liveStories.map(shot => <TouchableOpacity key={shot.authorUid} style={s.story}
         accessibilityRole="button" accessibilityLabel={`لحظات ${shot.author}`}
         accessibilityState={{ selected: author === shot.handle }}
@@ -72,7 +79,7 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
       </TouchableOpacity>)}
     </ScrollView>
     <View style={ui.between}><View style={[ui.row, { gap: 7 }]}>
-      {[['all', 'لك'], ['moment', 'اللحظات'], ['post', 'البوستات']].map(([id, label]) =>
+      {[['all', t('forYou')], ['moment', t('moments')], ['post', t('posts')]].map(([id, label]) =>
         <Pill key={id} label={label} active={filter === id} onPress={() => setFilter(id)} />)}
     </View></View>
     <DemoNote>المنشورات واللحظات الحقيقية تتحدّث مباشرة</DemoNote>
@@ -81,12 +88,12 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
     {!!momentsError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{momentsError}</Text>}
     {!!likeError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{likeError}</Text>}
     {author && <Pill label="عرض الجميع ×" onPress={() => setAuthor(null)} />}
-    {shots.map(shot => {
+    {shots.map((shot, index) => {
       const cafe = previewCafes.find(x => x.id === shot.cafeId);
       const isLiked = !shot.isLive && liked.includes(shot.id);
       const post = shot.kind === 'post';
       const locationLabel = cafe ? `${cafe.name} · ${cafe.city}` : shot.note || (post ? 'منشور LilShot' : 'لحظة LilShot');
-      return <View key={shot.id} style={[s.card, post && s.postCard]}>
+      return <FadeInView key={shot.id} delay={Math.min(index * 55, 220)} style={[s.card, post && s.postCard]}>
         <Photo uri={shot.image} label={`قهوة ${shot.author}`} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={['rgba(34,23,17,0.12)', 'transparent', 'rgba(34,23,17,0.5)']} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
         <View style={[ui.between, { alignItems: 'flex-start' }]}>
@@ -117,25 +124,27 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
           </View>
           {!post && <View style={s.track}><View style={[s.progress, { width: `${Math.max(0, Math.min(100, (shot.expiresAt - now) / (shot.durationHours * 3600000) * 100))}%` }]} /></View>}
         </BlurView>
-      </View>;
+      </FadeInView>;
     })}
     {!shots.length && <Empty illustration={require('../assets/mascot-cup-hug.png')} title="ما في لقطات بهالقسم" text="جرّب قسم ثاني أو ارجع لعرض الجميع." />}
   </ScrollView>;
 }
 
 const s = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 144, gap: 18 },
-  intro: { gap: 2, marginTop: 4 },
-  title: { color: c.text, fontSize: 24, lineHeight: 37, fontWeight: '700', textAlign: 'right' },
-  stories: { flexDirection: 'row-reverse', gap: 20, flexGrow: 1, justifyContent: 'flex-start', paddingVertical: 4 },
+  content: { padding: 18, paddingBottom: 136, gap: 16 },
+  intro: { minHeight: 142, borderRadius: 28, paddingHorizontal: 20, paddingVertical: 16, backgroundColor: c.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.05, shadowRadius: 18, elevation: 2 },
+  introCopy: { flex: 1, gap: 4, alignItems: 'flex-end' },
+  introArt: { width: 116, height: 110, marginLeft: -10, marginBottom: -12 },
+  title: { color: c.text, fontSize: 25, lineHeight: 35, fontWeight: '800', textAlign: 'right', letterSpacing: -0.4 },
+  stories: { flexDirection: 'row-reverse', gap: 16, flexGrow: 1, justifyContent: 'flex-start', paddingVertical: 5 },
   story: { alignItems: 'center', gap: 7 },
-  storyRing: { width: 66, height: 66, borderRadius: 33, borderWidth: 1.5, borderColor: '#C5A17D', padding: 4 },
+  storyRing: { width: 66, height: 66, borderRadius: 33, borderWidth: 2, borderColor: '#D3B08A', padding: 3, backgroundColor: c.surface },
   selectedStory: { borderColor: c.dark, backgroundColor: c.cream },
   storyPhoto: { width: '100%', height: '100%', borderRadius: 30 },
-  addStory: { width: 66, height: 66, borderRadius: 33, borderWidth: 1, borderStyle: 'dashed', borderColor: '#C5A17D', backgroundColor: c.raised, alignItems: 'center', justifyContent: 'center' },
+  addStory: { width: 66, height: 66, borderRadius: 33, borderWidth: 1, borderStyle: 'dashed', borderColor: '#C9A47B', backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
   storyName: { color: c.muted, fontSize: 11 },
-  card: { minHeight: 438, borderRadius: 30, overflow: 'hidden', padding: 12, justifyContent: 'space-between', backgroundColor: c.raised },
-  postCard: { borderRadius: 20, borderWidth: 2, borderColor: '#CEB595' },
+  card: { minHeight: 438, borderRadius: 28, overflow: 'hidden', padding: 12, justifyContent: 'space-between', backgroundColor: c.raised, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.12, shadowRadius: 24, elevation: 5 },
+  postCard: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,.35)' },
   authorGlass: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, borderRadius: 25, padding: 7, paddingLeft: 12, overflow: 'hidden', backgroundColor: 'rgba(50,37,32,0.4)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   avatar: { width: 33, height: 33, borderRadius: 17, backgroundColor: c.cream, alignItems: 'center', justifyContent: 'center' },
   initial: { color: c.dark, fontWeight: '700' },
@@ -144,8 +153,8 @@ const s = StyleSheet.create({
   type: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: c.glass, flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 5 },
   postType: { backgroundColor: c.cream },
   typeText: { color: c.onPhoto, fontSize: 10, fontWeight: '600' },
-  cardBottom: { gap: 8, padding: 16, borderRadius: 23, overflow: 'hidden', backgroundColor: 'rgba(41,29,23,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', marginTop: 120 },
-  caption: { color: c.onPhoto, fontSize: 24, lineHeight: 36, fontWeight: '600', textAlign: 'right' },
+  cardBottom: { gap: 8, padding: 16, borderRadius: 21, overflow: 'hidden', backgroundColor: 'rgba(28,28,30,0.58)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.22)', marginTop: 120 },
+  caption: { color: c.onPhoto, fontSize: 23, lineHeight: 34, fontWeight: '700', textAlign: 'right', letterSpacing: -0.3 },
   note: { color: '#ECDFD3', fontSize: 12, textAlign: 'right', lineHeight: 20 },
   location: { flexDirection: 'row-reverse', gap: 4, alignItems: 'center', minHeight: 44, flexShrink: 1 },
   locationText: { color: c.onPhoto, fontSize: 11, flexShrink: 1 },

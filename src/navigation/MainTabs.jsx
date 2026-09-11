@@ -16,6 +16,7 @@ import UserProfileScreen from '../screens/UserProfileScreen';
 import { CoffeePreviewProvider } from '../context/CoffeePreviewContext';
 import { useAuth } from '../context/AuthContext';
 import { coffee as c } from '../theme/coffee';
+import { ScreenTransition } from '../components/coffee/Motion';
 
 const screens = { home: HomeScreen, shop: ShopScreen, profile: ProfileScreen };
 
@@ -40,7 +41,7 @@ function Tabs() {
   };
   const ActiveScreen = screens[activeTab] || HomeScreen;
   return <SafeAreaView style={s.container} edges={['top', 'left', 'right']}>
-    <ActiveScreen {...shared} />
+    <ScreenTransition screenKey={activeTab}><ActiveScreen {...shared} /></ScreenTransition>
     <TabBar activeTab={activeTab} onChangeTab={setActiveTab} onOpenCamera={shared.onCamera} />
     <Modal visible={cameraOpen} animationType="slide" onRequestClose={() => setCameraOpen(false)}>
       <View style={s.modalBackdrop}><View style={s.modalFrame}>{cameraOpen && <CameraScreen onClose={() => setCameraOpen(false)} />}</View></View>

@@ -1,6 +1,6 @@
 export const coffee = {
-  bg: '#F8F3EA', surface: '#FFFDF9', raised: '#EEE8DE', line: '#DED5C8',
-  text: '#111111', muted: '#756E66', accent: '#F2A94F', cream: '#FFE7B9',
-  green: '#2F7D5A', dark: '#090909', danger: '#D84D4D',
-  onPhoto: '#FFFFFF', glass: 'rgba(8,8,8,0.64)',
+  bg: '#F2F2F7', surface: '#FFFFFF', raised: '#F7F7FA', line: '#E5E5EA',
+  text: '#1D1D1F', muted: '#6E6E73', accent: '#A35F32', cream: '#F6E7D2',
+  green: '#248A3D', dark: '#1C1C1E', danger: '#D70015',
+  onPhoto: '#FFFFFF', glass: 'rgba(20,20,22,0.58)',
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { coffee as c } from '../theme/coffee';
 import { previewCafes, filterCafes } from '../data/coffeePreview';
 import { ui, Pill, Sheet, Button, DemoNote, Empty, BrandMark } from '../components/coffee/Kit';
@@ -10,6 +11,7 @@ import { filterPublicCafes } from '../services/firebase/cafeModel';
 import { STORE_CATEGORIES } from '../services/firebase/storeModel';
 import { useBlocking } from '../context/BlockingContext';
 import { useLanguage } from '../context/LanguageContext';
+import { FadeInView } from '../components/coffee/Motion';
 
 export default function ShopScreen({ onCafe, onPartner }) {
   const { t } = useLanguage();
@@ -33,9 +35,12 @@ export default function ShopScreen({ onCafe, onPartner }) {
   return <View style={ui.page}>
     <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <View style={ui.between}><BrandMark size={48} /><Pill label={city === 'الكل' ? t('allCities') : city} icon="location-outline" onPress={() => setCitiesOpen(true)} /></View>
-      <View><Text style={ui.title}>{t('shopHeadline')}</Text><Text style={ui.subtitle}>{t('shopSubtitle')}</Text></View>
+      <FadeInView delay={35} style={s.hero}>
+        <Image source={require('../assets/mascot-cup-peek.png')} contentFit="contain" style={s.heroArt} />
+        <View style={s.heroCopy}><Text style={ui.title}>{t('shopHeadline')}</Text><Text style={ui.subtitle}>{t('shopSubtitle')}</Text></View>
+      </FadeInView>
       <View style={s.search}><Ionicons name="search-outline" size={20} color={c.muted} />
-        <TextInput value={query} onChangeText={setQuery} placeholder="اسم المقهى أو الحي" accessibilityLabel="ابحث عن مقهى" placeholderTextColor={c.muted} style={s.input} />
+        <TextInput value={query} onChangeText={setQuery} placeholder={t('cafeSearch')} accessibilityLabel={t('cafeSearch')} placeholderTextColor={c.muted} style={s.input} />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[ui.row, { flexGrow: 1 }]}>
         {['الكل', ...STORE_CATEGORIES].map(label => <Pill key={label} label={label} active={category === label} onPress={() => setCategory(label)} />)}
@@ -44,10 +49,10 @@ export default function ShopScreen({ onCafe, onPartner }) {
       {liveLoading && <ActivityIndicator color={c.accent} />}
       {!!liveError && <View style={s.liveMessage}><Text style={s.liveMessageText}>{liveError}</Text></View>}
       {!liveLoading && !liveError && !visibleLiveCafes.length && <View style={s.liveMessage}><Ionicons name="storefront-outline" size={23} color={c.accent} /><Text style={s.liveMessageText}>{liveCafes.length ? 'لا يوجد مقهى حقيقي يطابق البحث.' : 'لا يوجد مقهى عام ومفعّل بعد. فعّل متجرًا من لوحة الأدمن ليظهر هنا.'}</Text></View>}
-      {visibleLiveCafes.map(cafe => <CafeCard key={cafe.id} cafe={cafe} onOpen={onCafe} />)}
-      <View style={ui.between}><Text style={ui.heading}>أماكن للتجربة</Text><Text style={s.count}>{cafes.length} نماذج</Text></View>
+      {visibleLiveCafes.map((cafe, index) => <FadeInView key={cafe.id} delay={Math.min(index * 45, 180)}><CafeCard cafe={cafe} onOpen={onCafe} /></FadeInView>)}
+      <View style={ui.between}><Text style={ui.heading}>{t('cafesNearYou')}</Text><Text style={s.count}>{cafes.length} {t('models')}</Text></View>
       <DemoNote>مقاهٍ توضيحية · اكتشاف الموقع الفعلي قريباً</DemoNote>
-      {cafes.map(cafe => <CafeCard key={cafe.id} cafe={cafe} onOpen={onCafe} />)}
+      {cafes.map((cafe, index) => <FadeInView key={cafe.id} delay={Math.min(index * 55, 220)}><CafeCard cafe={cafe} onOpen={onCafe} /></FadeInView>)}
       {!cafes.length && <Empty illustration={require('../assets/mascot-cup-peek.png')} title="لسّه ما في مقهى هون" text="جرّب اسم ثاني أو غيّر المدينة والفئة." action="مسح الفلاتر" onAction={() => { setQuery(''); setCategory('الكل'); setCity('الكل'); }} />}
       <View style={s.partner}><Ionicons name="storefront-outline" size={30} color={c.accent} /><Text style={ui.heading}>لمقهاك مكان بيننا</Text><Text style={ui.subtitle}>خلّ عشّاق القهوة يكتشفون مكانك، منيوك، وتفاصيلك.</Text><Button label="تعرّف على حساب المقهى" onPress={onPartner} secondary /></View>
     </ScrollView>
@@ -58,10 +63,13 @@ export default function ShopScreen({ onCafe, onPartner }) {
   </View>;
 }
 const s = StyleSheet.create({
-  search: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, borderRadius: 27, flexDirection: 'row-reverse', alignItems: 'center', paddingHorizontal: 17, gap: 10 },
+  hero: { minHeight: 176, backgroundColor: c.surface, borderRadius: 28, padding: 20, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, shadowColor: '#000', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.05, shadowRadius: 18, elevation: 2 },
+  heroArt: { width: 122, height: 122, marginLeft: -18, marginBottom: -28 },
+  heroCopy: { flex: 1, gap: 5 },
+  search: { backgroundColor: c.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, borderRadius: 16, flexDirection: 'row-reverse', alignItems: 'center', paddingHorizontal: 16, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.035, shadowRadius: 10, elevation: 1 },
   input: { flex: 1, minWidth: 0, minHeight: 52, fontSize: 14, color: c.text, textAlign: 'right' },
   count: { color: c.muted, fontSize: 12 },
-  partner: { backgroundColor: c.cream, borderRadius: 28, padding: 24, gap: 14, alignItems: 'stretch', marginTop: 4 },
-  liveMessage: { minHeight: 78, padding: 17, borderRadius: 21, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  partner: { backgroundColor: c.cream, borderRadius: 24, padding: 22, gap: 14, alignItems: 'stretch', marginTop: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E7D2B5' },
+  liveMessage: { minHeight: 78, padding: 17, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, backgroundColor: c.surface, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 10 },
   liveMessageText: { color: c.muted, fontSize: 12, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
 });

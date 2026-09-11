@@ -18,6 +18,7 @@ import { blockingErrorMessage } from '../services/firebase/blocking';
 import { useLanguage } from '../context/LanguageContext';
 import InvitationsPanel from '../components/coffee/InvitationsPanel';
 import { hasActiveSubscription, subscriptionDaysLeft } from '../services/firebase/subscriptionModel';
+import { FadeInView } from '../components/coffee/Motion';
 
 export default function ProfileScreen({ onMoment, onPlus }) {
   const { user } = useAuth();
@@ -75,12 +76,12 @@ export default function ProfileScreen({ onMoment, onPlus }) {
   if (postComposerOpen) return <PostComposerScreen onClose={() => { setPostComposerOpen(false); setTab('post'); }} />;
 
   return <View style={ui.page}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-    <View style={s.cover}>
+    <FadeInView style={s.cover}>
       <Photo uri={require('../assets/CoffeeShop.png')} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.12)', 'rgba(0,0,0,0.82)']} style={StyleSheet.absoluteFill} />
       <View style={s.coverTop}><IconButton glass icon="settings-outline" label="إعدادات الحساب" onPress={() => setSettings(true)} /><BrandMark inverted size={48} /></View>
-    </View>
-    <View style={s.body}>
+    </FadeInView>
+    <FadeInView delay={90} distance={16} style={s.body}>
       <View style={s.avatar}>{user?.photoURL ? <Photo uri={user.photoURL} label="صورة حسابك" style={s.avatarPhoto} /> : <Text style={s.initial}>{Array.from(name)[0]}</Text>}</View>
       <View style={s.nameRow}><Text style={s.name}>{name}</Text>{profile?.verified && <View accessibilityLabel="حساب موثّق" style={s.verified}><Ionicons name="checkmark" size={12} color={c.onPhoto} /></View>}</View>
       <Text style={s.username}>@{profile?.username || 'lilshot'}</Text>
@@ -121,7 +122,7 @@ export default function ProfileScreen({ onMoment, onPlus }) {
           action={isCafe ? undefined : tab === 'moment' ? undefined : 'تعرّف على Plus'} onAction={onPlus} />
       </View>}
       {!!postError && <Text accessibilityRole="alert" style={{ color: c.danger, textAlign: 'center' }}>{postError}</Text>}
-    </View>
+    </FadeInView>
   </ScrollView>
   </View>;
 }
@@ -172,13 +173,14 @@ function ProfileSettings({ onClose }) {
   };
   return <View style={ui.page}>
     <View style={s.settingsHeader}>
-      <Text accessibilityRole="header" style={ui.heading}>إعدادات الحساب</Text>
+      <Text accessibilityRole="header" style={ui.heading}>{t('settings')}</Text>
       <Button label="رجوع" secondary disabled={busy} icon="arrow-forward" onPress={close} />
     </View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.settingsContent}>
     <View style={ui.panel}>
       <Text style={ui.heading}>{t('language')}</Text>
       <View style={s.privacyOptions}>{[['ar', t('arabic')], ['en', t('english')]].map(([value, label]) => <TouchableOpacity key={value} onPress={() => setLocale(value)} accessibilityRole="button" accessibilityState={{ selected: locale === value }} style={[s.privacyOption, locale === value && s.privacySelected]}><Text style={{ color: locale === value ? c.onPhoto : c.text, fontWeight: '700' }}>{label}</Text></TouchableOpacity>)}</View>
+      <Text style={ui.subtitle}>{t('appLanguageHint')}</Text>
     </View>
     <View style={ui.panel}><InvitationsPanel /></View>
     <View style={ui.panel}>
@@ -231,63 +233,63 @@ function ProfileSettings({ onClose }) {
   </View>;
 }
 const s = StyleSheet.create({
-  settingsHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 18 },
-  settingsContent: { padding: 20, paddingTop: 0, paddingBottom: 150, gap: 18 },
+  settingsHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 18, backgroundColor: 'rgba(242,242,247,.94)', borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.line },
+  settingsContent: { padding: 18, paddingTop: 16, paddingBottom: 140, gap: 16 },
   fieldLabel: { color: c.text, fontSize: 13, fontWeight: '600', textAlign: 'right' },
-  field: { minHeight: 52, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 18, borderWidth: 1, borderColor: c.line, backgroundColor: c.raised, color: c.text, fontSize: 15, textAlign: 'right', writingDirection: 'rtl' },
+  field: { minHeight: 52, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, backgroundColor: c.raised, color: c.text, fontSize: 15, textAlign: 'right', writingDirection: 'rtl' },
   bioField: { minHeight: 105, textAlignVertical: 'top' },
   counter: { color: c.muted, fontSize: 11, textAlign: 'left' },
   privacyOptions: { flexDirection: 'row-reverse', gap: 10 },
-  privacyOption: { flex: 1, minHeight: 48, borderRadius: 24, borderWidth: 1, borderColor: c.line, flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center', gap: 8, backgroundColor: c.raised },
+  privacyOption: { flex: 1, minHeight: 48, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center', gap: 8, backgroundColor: c.raised },
   privacySelected: { backgroundColor: c.dark, borderColor: c.dark },
   blockedRow: { gap: 10, borderTopWidth: 1, borderColor: c.line, paddingTop: 13 },
   blockedIdentity: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   blockedAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.cream, alignItems: 'center', justifyContent: 'center' },
   blockedName: { color: c.text, fontSize: 14, fontWeight: '700', textAlign: 'right' },
   blockedUsername: { color: c.accent, fontSize: 10, textAlign: 'right', writingDirection: 'ltr' },
-  content: { paddingBottom: 144 },
-  cover: { height: 370, margin: 10, marginBottom: 0, borderRadius: 34, overflow: 'hidden', backgroundColor: c.raised },
+  content: { paddingBottom: 136 },
+  cover: { height: 260, margin: 12, marginBottom: 0, borderRadius: 28, overflow: 'hidden', backgroundColor: c.raised, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.12, shadowRadius: 24, elevation: 4 },
   coverTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },
   coverLogo: { color: c.onPhoto, fontSize: 22, fontWeight: '700', letterSpacing: -1 },
-  body: { paddingHorizontal: 22, marginTop: -235, alignItems: 'center', gap: 12 },
-  avatar: { width: 98, height: 98, borderRadius: 49, backgroundColor: c.cream, borderWidth: 3, borderColor: 'rgba(255,255,255,.8)', alignItems: 'center', justifyContent: 'center' },
+  body: { marginHorizontal: 12, paddingHorizontal: 18, paddingTop: 54, paddingBottom: 22, marginTop: -52, borderRadius: 28, backgroundColor: c.surface, alignItems: 'center', gap: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line },
+  avatar: { position: 'absolute', top: -48, width: 96, height: 96, borderRadius: 48, backgroundColor: c.cream, borderWidth: 4, borderColor: c.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 3 },
   avatarPhoto: { width: 84, height: 84, borderRadius: 42 },
   initial: { color: c.accent, fontSize: 37, fontWeight: '600' },
-  name: { color: c.onPhoto, fontSize: 31, fontWeight: '900', textAlign: 'center', marginTop: 2, textShadowColor: 'rgba(0,0,0,.35)', textShadowRadius: 8 },
+  name: { color: c.text, fontSize: 30, fontWeight: '800', textAlign: 'center', marginTop: 2, letterSpacing: -0.5 },
   nameRow: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 2 },
   verified: { width: 19, height: 19, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2C9DEB' },
-  username: { color: c.cream, fontSize: 12, writingDirection: 'ltr' },
-  bio: { color: 'rgba(255,255,255,.86)', fontSize: 13, textAlign: 'center' },
-  status: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: 'rgba(0,0,0,.48)', borderRadius: 16 },
+  username: { color: c.accent, fontSize: 12, writingDirection: 'ltr' },
+  bio: { color: c.muted, fontSize: 13, lineHeight: 21, textAlign: 'center' },
+  status: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: c.raised, borderRadius: 15 },
   statusDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: c.accent },
   statusText: { color: c.accent, fontSize: 10 },
   pendingStatus: { backgroundColor: '#FBF1E1' },
   pendingDot: { backgroundColor: '#C17C43' },
-  stats: { flexDirection: 'row-reverse', alignSelf: 'stretch', marginTop: 10, paddingVertical: 14, borderRadius: 22, backgroundColor: 'rgba(255,255,255,.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,.22)' },
+  stats: { flexDirection: 'row-reverse', alignSelf: 'stretch', marginTop: 10, paddingVertical: 15, borderRadius: 18, backgroundColor: c.raised, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line },
   stat: { flex: 1, alignItems: 'center', gap: 5 },
-  statDivider: { borderRightWidth: 1, borderColor: 'rgba(255,255,255,.24)' },
-  statValue: { color: c.onPhoto, fontSize: 25, fontWeight: '800' },
-  statLabel: { color: 'rgba(255,255,255,.76)', fontSize: 10 },
-  waiting: { color: 'rgba(255,255,255,.7)', fontSize: 10, textAlign: 'center', marginBottom: 6 },
+  statDivider: { borderRightWidth: StyleSheet.hairlineWidth, borderColor: c.line },
+  statValue: { color: c.text, fontSize: 24, fontWeight: '700' },
+  statLabel: { color: c.muted, fontSize: 10 },
+  waiting: { color: c.muted, fontSize: 10, textAlign: 'center', marginBottom: 6 },
   actions: { alignSelf: 'stretch', flexDirection: 'row-reverse', gap: 10 },
-  plus: { alignSelf: 'stretch', flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: c.cream, borderRadius: 24, padding: 17, gap: 13, marginVertical: 6 },
+  plus: { alignSelf: 'stretch', flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: c.cream, borderRadius: 20, padding: 17, gap: 13, marginVertical: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E7D2B5' },
   plusIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#FAF5EC', alignItems: 'center', justifyContent: 'center' },
   plusName: { color: c.dark, fontSize: 18, fontWeight: '700', textAlign: 'right' },
   plusTag: { color: c.accent, fontSize: 11, textAlign: 'right' },
   plusActive: { borderWidth: 1, borderColor: '#E4CDAF' },
-  cafeCard: { alignSelf: 'stretch', borderRadius: 24, padding: 17, backgroundColor: c.dark, gap: 12, marginVertical: 6 },
+  cafeCard: { alignSelf: 'stretch', borderRadius: 20, padding: 17, backgroundColor: c.dark, gap: 12, marginVertical: 6 },
   cafePendingCard: { backgroundColor: '#A66D40' },
   cafeCardTop: { flexDirection: 'row-reverse', alignItems: 'center', gap: 12 },
   cafeIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,.18)' },
   cafeCardTitle: { color: c.onPhoto, fontSize: 17, fontWeight: '700', textAlign: 'right' },
   cafeCardText: { color: 'rgba(255,255,255,.78)', fontSize: 11, lineHeight: 18, textAlign: 'right', marginTop: 4 },
-  tabs: { flexDirection: 'row-reverse', alignSelf: 'stretch', borderBottomWidth: 1, borderColor: c.line },
-  tab: { flex: 1, minHeight: 52, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 8, borderBottomWidth: 2, borderColor: 'transparent' },
-  activeTab: { borderBottomColor: c.dark },
+  tabs: { flexDirection: 'row-reverse', alignSelf: 'stretch', padding: 4, borderRadius: 14, backgroundColor: c.raised },
+  tab: { flex: 1, minHeight: 44, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 11 },
+  activeTab: { backgroundColor: c.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 1 },
   tabText: { color: c.muted, fontSize: 12, fontWeight: '600' },
   galleryEmpty: { alignSelf: 'stretch', paddingTop: 30 },
   postGrid: { alignSelf: 'stretch', gap: 16, paddingTop: 18 },
-  postCard: { overflow: 'hidden', borderRadius: 26, backgroundColor: '#111', borderWidth: 1, borderColor: '#242424' },
+  postCard: { overflow: 'hidden', borderRadius: 22, backgroundColor: c.dark, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line },
   postImage: { width: '100%', height: 330 },
   postBody: { padding: 16, gap: 10 },
   postCaption: { color: c.onPhoto, fontSize: 16, fontWeight: '700', textAlign: 'right' },
