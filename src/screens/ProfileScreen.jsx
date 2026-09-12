@@ -16,7 +16,6 @@ import { remainingLabel } from '../data/coffeePreview';
 import { useBlocking } from '../context/BlockingContext';
 import { blockingErrorMessage } from '../services/firebase/blocking';
 import { useLanguage } from '../context/LanguageContext';
-import InvitationsPanel from '../components/coffee/InvitationsPanel';
 import { hasActiveSubscription, subscriptionDaysLeft } from '../services/firebase/subscriptionModel';
 import { FadeInView } from '../components/coffee/Motion';
 
@@ -182,7 +181,6 @@ function ProfileSettings({ onClose }) {
       <View style={s.privacyOptions}>{[['ar', t('arabic')], ['en', t('english')]].map(([value, label]) => <TouchableOpacity key={value} onPress={() => setLocale(value)} accessibilityRole="button" accessibilityState={{ selected: locale === value }} style={[s.privacyOption, locale === value && s.privacySelected]}><Text style={{ color: locale === value ? c.onPhoto : c.text, fontWeight: '700' }}>{label}</Text></TouchableOpacity>)}</View>
       <Text style={ui.subtitle}>{t('appLanguageHint')}</Text>
     </View>
-    <View style={ui.panel}><InvitationsPanel /></View>
     <View style={ui.panel}>
       <Text style={ui.heading}>تفاصيلك</Text>
       <Text style={s.fieldLabel}>الاسم الظاهر</Text>

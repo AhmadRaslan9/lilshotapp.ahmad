@@ -15,7 +15,7 @@ import PostLikeButton from '../components/coffee/PostLikeButton';
 import ReportButton from '../components/coffee/ReportButton';
 import { useBlocking } from '../context/BlockingContext';
 import { useLanguage } from '../context/LanguageContext';
-import { FadeInView, PressableScale } from '../components/coffee/Motion';
+import { FadeInView } from '../components/coffee/Motion';
 
 export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch }) {
   const [filter, setFilter] = useState('all');
@@ -47,7 +47,6 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
   const visibleLiveMoments = liveMoments.filter((item) => !excludedIds.has(item.authorUid));
   const visibleLivePosts = livePosts.filter((item) => !excludedIds.has(item.authorUid));
   const shots = visibleShots([...visibleLiveMoments, ...visibleLivePosts, ...previewShots], filter, author, now);
-  const liveStories = Array.from(new Map(visibleLiveMoments.filter((item) => item.expiresAt > now).map((item) => [item.authorUid, item])).values());
 
   return <ScrollView style={ui.page} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
     <View style={ui.between}>
@@ -59,25 +58,6 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
       <Image source={require('../assets/mascot-blanket-coffee.png')} contentFit="contain" style={s.introArt} />
       <View style={s.introCopy}><Text style={s.title}>{t('homeGreeting')}</Text><Text style={ui.subtitle}>{t('homeGreetingSub')}</Text></View>
     </FadeInView>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.stories}>
-      <PressableScale style={s.story} onPress={onMoment} accessibilityRole="button" accessibilityLabel={t('yourMoment')}>
-        <View style={s.addStory}><Ionicons name="add" size={28} color={c.accent} /></View><Text style={s.storyName}>{t('yourMoment')}</Text>
-      </PressableScale>
-      {liveStories.map(shot => <TouchableOpacity key={shot.authorUid} style={s.story}
-        accessibilityRole="button" accessibilityLabel={`لحظات ${shot.author}`}
-        accessibilityState={{ selected: author === shot.handle }}
-        onPress={() => { setAuthor(author === shot.handle ? null : shot.handle); setFilter('moment'); }}>
-        <View style={[s.storyRing, author === shot.handle && s.selectedStory]}><Photo uri={shot.image} style={s.storyPhoto} /></View>
-        <Text numberOfLines={1} style={[s.storyName, author === shot.handle && { color: c.accent }]}>{shot.author}</Text>
-      </TouchableOpacity>)}
-      {previewShots.map(shot => <TouchableOpacity key={shot.id} style={s.story}
-        accessibilityRole="button" accessibilityLabel={`لقطات ${shot.author}`}
-        accessibilityState={{ selected: author === shot.handle }}
-        onPress={() => { setAuthor(author === shot.handle ? null : shot.handle); setFilter('all'); }}>
-        <View style={[s.storyRing, author === shot.handle && s.selectedStory]}><Photo uri={shot.image} style={s.storyPhoto} /></View>
-        <Text style={[s.storyName, author === shot.handle && { color: c.accent }]}>{shot.author}</Text>
-      </TouchableOpacity>)}
-    </ScrollView>
     <View style={ui.between}><View style={[ui.row, { gap: 7 }]}>
       {[['all', t('forYou')], ['moment', t('moments')], ['post', t('posts')]].map(([id, label]) =>
         <Pill key={id} label={label} active={filter === id} onPress={() => setFilter(id)} />)}
@@ -136,13 +116,6 @@ const s = StyleSheet.create({
   introCopy: { flex: 1, gap: 4, alignItems: 'flex-end' },
   introArt: { width: 116, height: 110, marginLeft: -10, marginBottom: -12 },
   title: { color: c.text, fontSize: 25, lineHeight: 35, fontWeight: '800', textAlign: 'right', letterSpacing: -0.4 },
-  stories: { flexDirection: 'row-reverse', gap: 16, flexGrow: 1, justifyContent: 'flex-start', paddingVertical: 5 },
-  story: { alignItems: 'center', gap: 7 },
-  storyRing: { width: 66, height: 66, borderRadius: 33, borderWidth: 2, borderColor: '#D3B08A', padding: 3, backgroundColor: c.surface },
-  selectedStory: { borderColor: c.dark, backgroundColor: c.cream },
-  storyPhoto: { width: '100%', height: '100%', borderRadius: 30 },
-  addStory: { width: 66, height: 66, borderRadius: 33, borderWidth: 1, borderStyle: 'dashed', borderColor: '#C9A47B', backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
-  storyName: { color: c.muted, fontSize: 11 },
   card: { minHeight: 438, borderRadius: 28, overflow: 'hidden', padding: 12, justifyContent: 'space-between', backgroundColor: c.raised, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.12, shadowRadius: 24, elevation: 5 },
   postCard: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,.35)' },
   authorGlass: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, borderRadius: 25, padding: 7, paddingLeft: 12, overflow: 'hidden', backgroundColor: 'rgba(50,37,32,0.4)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
