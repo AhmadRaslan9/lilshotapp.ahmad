@@ -15,7 +15,7 @@ import PostLikeButton from '../components/coffee/PostLikeButton';
 import ReportButton from '../components/coffee/ReportButton';
 import { useBlocking } from '../context/BlockingContext';
 import { useLanguage } from '../context/LanguageContext';
-import { FadeInView } from '../components/coffee/Motion';
+import { FadeInView, PressableScale } from '../components/coffee/Motion';
 
 export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch }) {
   const [filter, setFilter] = useState('all');
@@ -96,11 +96,11 @@ export default function HomeScreen({ onMoment, onCafe, onNotifications, onSearch
               <Ionicons name="location-outline" size={15} color={c.onPhoto} /><Text style={s.locationText}>{locationLabel}</Text>
             </TouchableOpacity>
             <View style={s.cardActions}>{(shot.isLive || shot.isLiveMoment) && <ReportButton glass label="" targetType={shot.isLiveMoment ? 'moment' : 'post'} targetId={shot.id} targetOwnerUid={shot.authorUid} targetLabel={`${shot.isLiveMoment ? 'لحظة' : 'منشور'} ${shot.author}`} targetPreview={shot.caption} />}
-            {shot.isLiveMoment ? <View style={s.liveMoment}><Ionicons name="time-outline" size={17} color={c.onPhoto} /><Text style={s.likes}>لحظة</Text></View> : shot.isLive ? <PostLikeButton postId={shot.id} count={shot.likes} onError={setLikeError} /> : <TouchableOpacity onPress={() => toggleLiked(shot.id)} accessibilityRole="button"
+            {shot.isLiveMoment ? <View style={s.liveMoment}><Ionicons name="time-outline" size={17} color={c.onPhoto} /><Text style={s.likes}>لحظة</Text></View> : shot.isLive ? <PostLikeButton postId={shot.id} count={shot.likes} onError={setLikeError} /> : <PressableScale onPress={() => toggleLiked(shot.id)} accessibilityRole="button"
               accessibilityLabel={`إعجاب بلقطة ${shot.author}`} accessibilityState={{ selected: isLiked }} style={s.like}>
               <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={22} color={isLiked ? '#FFB5AB' : c.onPhoto} />
               <Text style={s.likes}>{shot.likes + (isLiked ? 1 : 0)}</Text>
-            </TouchableOpacity>}</View>
+            </PressableScale>}</View>
           </View>
           {!post && <View style={s.track}><View style={[s.progress, { width: `${Math.max(0, Math.min(100, (shot.expiresAt - now) / (shot.durationHours * 3600000) * 100))}%` }]} /></View>}
         </BlurView>

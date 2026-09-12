@@ -140,8 +140,8 @@ export default function CameraScreen({ onClose }) {
           {!!error && <Text style={s.error} accessibilityRole="alert">{error}</Text>}
           <View style={s.bottom}>
             {photo ? <View style={s.review}>
-              <TouchableOpacity onPress={restartCamera} style={s.reviewButton}><Ionicons name="refresh" size={20} color="#fff" /><Text style={s.reviewText}>إعادة</Text></TouchableOpacity>
-              <TouchableOpacity onPress={onClose} style={[s.reviewButton, s.useButton]}><Ionicons name="checkmark" size={21} color={c.dark} /><Text style={[s.reviewText, { color: c.dark }]}>استخدام</Text></TouchableOpacity>
+              <PressableScale onPress={restartCamera} style={s.reviewButton}><Ionicons name="refresh" size={20} color="#fff" /><Text style={s.reviewText}>إعادة</Text></PressableScale>
+              <PressableScale onPress={onClose} style={[s.reviewButton, s.useButton]}><Ionicons name="checkmark" size={21} color={c.dark} /><Text style={[s.reviewText, { color: c.dark }]}>استخدام</Text></PressableScale>
             </View> : <>
               <View style={s.captureRow}>
                 <TouchableOpacity disabled style={s.thumb} accessibilityLabel="الاستديو قريبًا"><Ionicons name="images-outline" size={22} color="#fff" /></TouchableOpacity>

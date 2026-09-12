@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../context/ProfileContext';
 import { Button } from '../../components/coffee/Kit';
 import { coffee as c } from '../../theme/coffee';
+import { PressableScale } from '../../components/coffee/Motion';
 
 const errorMessages = {
   'profile/invalid-name': 'اكتب اسماً من حرفين إلى 40 حرفاً.',
@@ -37,13 +38,13 @@ export default function ProfileSetupScreen() {
     {[
       ['user', 'person-outline', 'مستخدم', 'لحظات القهوة، المتابعة والنقاط'],
       ['cafe', 'storefront-outline', 'مقهى', 'صفحة متجر، منيو، موقع وتقييمات'],
-    ].map(([id, icon, title, text]) => <TouchableOpacity key={id} onPress={() => setAccountType(id)} style={[s.option, accountType === id && s.selected]}><Ionicons name={icon} size={25} color={accountType === id ? c.onPhoto : c.accent} /><View style={{ flex: 1 }}><Text style={[s.optionTitle, accountType === id && s.white]}>{title}</Text><Text style={[s.optionText, accountType === id && s.softWhite]}>{text}</Text></View></TouchableOpacity>)}
+    ].map(([id, icon, title, text]) => <PressableScale key={id} onPress={() => setAccountType(id)} style={[s.option, accountType === id && s.selected]}><Ionicons name={icon} size={25} color={accountType === id ? c.onPhoto : c.accent} /><View style={{ flex: 1 }}><Text style={[s.optionTitle, accountType === id && s.white]}>{title}</Text><Text style={[s.optionText, accountType === id && s.softWhite]}>{text}</Text></View></PressableScale>)}
     {accountType === 'cafe' && <View style={s.notice}><Text style={s.noticeText}>حساب المقهى يحتاج اشتراكاً قبل نشر المنيو والظهور في الاستكشاف.</Text></View>}
-    <Text style={s.section}>الخصوصية</Text><View style={s.segment}>{[['public', 'عام'], ['private', 'خاص']].map(([id, label]) => <TouchableOpacity key={id} onPress={() => setPrivacy(id)} style={[s.segmentItem, privacy === id && s.selected]}><Text style={[s.segmentText, privacy === id && s.white]}>{label}</Text></TouchableOpacity>)}</View>
+    <Text style={s.section}>الخصوصية</Text><View style={s.segment}>{[['public', 'عام'], ['private', 'خاص']].map(([id, label]) => <PressableScale key={id} onPress={() => setPrivacy(id)} style={[s.segmentItem, privacy === id && s.selected]}><Text style={[s.segmentText, privacy === id && s.white]}>{label}</Text></PressableScale>)}</View>
     <Text style={s.helper}>حتى الحساب العام يستخدم طلبات متابعة؛ أنت تقرر من يدخل دائرتك.</Text>
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
     <Button label={busy ? 'جارٍ تجهيز حسابك…' : 'ابدأ مع LilShot'} icon="arrow-back" disabled={busy} onPress={submit} />
-    <TouchableOpacity onPress={signOut} style={s.logout}><Text style={s.helper}>تسجيل الخروج</Text></TouchableOpacity>
+    <PressableScale onPress={signOut} style={s.logout}><Text style={s.helper}>تسجيل الخروج</Text></PressableScale>
   </ScrollView></SafeAreaView>;
 }
 

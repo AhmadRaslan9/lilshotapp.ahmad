@@ -1,52 +1,64 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { TouchableOpacity } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+const spring = {
+  damping: 19,
+  stiffness: 360,
+  mass: 0.42,
+  overshootClamping: false,
+  reduceMotion: ReduceMotion.System,
+};
 
 export function FadeInView({ children, delay = 0, distance = 12, style, ...props }) {
-  const progress = useRef(new Animated.Value(0)).current;
+  const entering = FadeInDown
+    .delay(delay)
+    .springify()
+    .damping(20)
+    .stiffness(190)
+    .mass(0.62)
+    .reduceMotion(ReduceMotion.System)
+    .withInitialValues({ opacity: 0, transform: [{ translateY: distance }, { scale: 0.988 }] });
 
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 420,
-      delay,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [delay, progress]);
-
-  return <Animated.View
-    {...props}
-    style={[
-      style,
-      {
-        opacity: progress,
-        transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) }],
-      },
-    ]}
-  >{children}</Animated.View>;
+  return <Animated.View {...props} entering={entering} style={style}>{children}</Animated.View>;
 }
 
 export function PressableScale({ children, style, disabled, onPressIn, onPressOut, ...props }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const spring = (toValue) => Animated.spring(scale, {
-    toValue,
-    speed: 28,
-    bounciness: 5,
-    useNativeDriver: true,
-  }).start();
+  const pressed = useSharedValue(0);
+  const motionStyle = useAnimatedStyle(() => ({
+    opacity: 1 - pressed.value * 0.08,
+    transform: [{ scale: 1 - pressed.value * 0.045 }],
+  }), []);
 
   return <AnimatedTouchable
     {...props}
     disabled={disabled}
     activeOpacity={1}
-    onPressIn={(event) => { if (!disabled) spring(0.965); onPressIn?.(event); }}
-    onPressOut={(event) => { spring(1); onPressOut?.(event); }}
-    style={[style, { transform: [{ scale }] }]}
+    onPressIn={(event) => {
+      if (!disabled) pressed.value = withSpring(1, spring);
+      onPressIn?.(event);
+    }}
+    onPressOut={(event) => {
+      pressed.value = withSpring(0, spring);
+      onPressOut?.(event);
+    }}
+    style={[style, motionStyle]}
   >{children}</AnimatedTouchable>;
 }
 
 export function ScreenTransition({ children, screenKey, style }) {
-  return <FadeInView key={screenKey} distance={8} style={[{ flex: 1 }, style]}>{children}</FadeInView>;
+  const entering = FadeIn
+    .duration(230)
+    .easing(Easing.out(Easing.cubic))
+    .reduceMotion(ReduceMotion.System);
+  return <Animated.View key={screenKey} entering={entering} style={[{ flex: 1 }, style]}>{children}</Animated.View>;
 }

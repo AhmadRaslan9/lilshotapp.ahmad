@@ -17,7 +17,7 @@ import { useBlocking } from '../context/BlockingContext';
 import { blockingErrorMessage } from '../services/firebase/blocking';
 import { useLanguage } from '../context/LanguageContext';
 import { hasActiveSubscription, subscriptionDaysLeft } from '../services/firebase/subscriptionModel';
-import { FadeInView } from '../components/coffee/Motion';
+import { FadeInView, PressableScale } from '../components/coffee/Motion';
 
 export default function ProfileScreen({ onMoment, onPlus }) {
   const { user } = useAuth();
@@ -95,16 +95,16 @@ export default function ProfileScreen({ onMoment, onPlus }) {
       {isCafe ? <View style={[s.cafeCard, !cafeLive && s.cafePendingCard]}>
         <View style={s.cafeCardTop}><View style={s.cafeIcon}><Ionicons name="storefront-outline" color={c.onPhoto} size={22} /></View><View style={{ flex: 1 }}><Text style={s.cafeCardTitle}>{cafeLive ? `متجرك على خطة ${cafePlan}` : 'اشتراك المتجر'}</Text><Text style={s.cafeCardText}>{cafeLive ? 'المنيو، الموقع والعروض ستظهر لزوار متجرك.' : 'بانتظار تفعيل الإدارة قبل نشر المنيو أو الظهور في الاستكشاف.'}</Text></View></View>
         <Button label="تعديل معلومات المتجر" secondary icon="create-outline" onPress={() => setStoreSettingsOpen(true)} />
-      </View> : <TouchableOpacity onPress={onPlus} accessibilityRole="button" accessibilityLabel="اكتشف مزايا Plus" style={[s.plus, isPlus && s.plusActive]}>
+      </View> : <PressableScale onPress={onPlus} accessibilityRole="button" accessibilityLabel="اكتشف مزايا Plus" style={[s.plus, isPlus && s.plusActive]}>
         <View style={s.plusIcon}><Ionicons name={isPlus ? 'checkmark-circle-outline' : 'sparkles-outline'} color={c.accent} size={24} /></View>
         <View style={{ flex: 1, gap: 4 }}><Text style={s.plusName}>{isPlus ? 'LilShot Plus مفعّل' : 'lilshot plus'}</Text><Text style={s.plusTag}>{isPlus ? 'بوستات دائمة ولحظات حتى 24 ساعة' : 'مساحة أكبر للحظاتك الحلوة'}</Text></View>
         <Ionicons name="arrow-back" size={20} color={c.accent} />
-      </TouchableOpacity>}
+      </PressableScale>}
       {(cafeLive || isPlus) && <View style={{ alignSelf: 'stretch' }}><Button label="إنشاء منشور جديد" icon="add-circle-outline" onPress={() => setPostComposerOpen(true)} /></View>}
       <View style={s.tabs}>{(isCafe ? [['menu', 'restaurant-outline', 'المنيو'], ['post', 'grid-outline', 'المنشورات']] : [['moment', 'time-outline', 'اللحظات'], ['post', 'grid-outline', 'البوستات']]).map(([id, icon, label]) =>
-        <TouchableOpacity key={id} onPress={() => setTab(id)} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: tab === id }} style={[s.tab, tab === id && s.activeTab]}>
+        <PressableScale key={id} onPress={() => setTab(id)} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: tab === id }} style={[s.tab, tab === id && s.activeTab]}>
           <Ionicons name={icon} size={20} color={tab === id ? c.dark : c.muted} /><Text style={[s.tabText, tab === id && { color: c.dark }]}>{label}</Text>
-        </TouchableOpacity>)}
+        </PressableScale>)}
       </View>
       {tab === 'moment' && activeOwnMoments.length ? <View style={s.postGrid}>{activeOwnMoments.map((moment) => <View key={moment.id} style={s.postCard}>
         <Photo uri={moment.image} label={`لحظة ${moment.caption}`} style={s.postImage} />
@@ -178,7 +178,7 @@ function ProfileSettings({ onClose }) {
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.settingsContent}>
     <View style={ui.panel}>
       <Text style={ui.heading}>{t('language')}</Text>
-      <View style={s.privacyOptions}>{[['ar', t('arabic')], ['en', t('english')]].map(([value, label]) => <TouchableOpacity key={value} onPress={() => setLocale(value)} accessibilityRole="button" accessibilityState={{ selected: locale === value }} style={[s.privacyOption, locale === value && s.privacySelected]}><Text style={{ color: locale === value ? c.onPhoto : c.text, fontWeight: '700' }}>{label}</Text></TouchableOpacity>)}</View>
+      <View style={s.privacyOptions}>{[['ar', t('arabic')], ['en', t('english')]].map(([value, label]) => <PressableScale key={value} onPress={() => setLocale(value)} accessibilityRole="button" accessibilityState={{ selected: locale === value }} style={[s.privacyOption, locale === value && s.privacySelected]}><Text style={{ color: locale === value ? c.onPhoto : c.text, fontWeight: '700' }}>{label}</Text></PressableScale>)}</View>
       <Text style={ui.subtitle}>{t('appLanguageHint')}</Text>
     </View>
     <View style={ui.panel}>
@@ -194,9 +194,9 @@ function ProfileSettings({ onClose }) {
     <View style={ui.panel}>
       <Text style={ui.heading}>خصوصية الحساب</Text>
       <View style={s.privacyOptions}>{[['public', 'globe-outline', 'عام'], ['private', 'lock-closed-outline', 'خاص']].map(([value, icon, label]) =>
-        <TouchableOpacity key={value} disabled={busy} accessibilityRole="button" accessibilityLabel={`حساب ${label}`} accessibilityState={{ selected: privacy === value, disabled: busy }} onPress={() => change(setPrivacy, value)} style={[s.privacyOption, privacy === value && s.privacySelected]}>
+        <PressableScale key={value} disabled={busy} accessibilityRole="button" accessibilityLabel={`حساب ${label}`} accessibilityState={{ selected: privacy === value, disabled: busy }} onPress={() => change(setPrivacy, value)} style={[s.privacyOption, privacy === value && s.privacySelected]}>
           <Ionicons name={icon} size={18} color={privacy === value ? c.onPhoto : c.muted} /><Text style={{ color: privacy === value ? c.onPhoto : c.text }}>{label}</Text>
-        </TouchableOpacity>)}</View>
+        </PressableScale>)}</View>
       <Text style={ui.subtitle}>{privacy === 'private' ? 'ملفك الشخصي خاص حالياً. مشاركة الملف مع المتابعين ستتوفر عند تفعيل المتابعة.' : 'يمكن للمستخدمين المسجّلين الاطلاع على ملفك العام.'}</Text>
       <Text style={s.bio}>طلبات المتابعة ستتوفر في مرحلة لاحقة.</Text>
     </View>

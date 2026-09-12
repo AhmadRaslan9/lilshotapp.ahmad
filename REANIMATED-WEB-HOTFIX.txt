@@ -1,0 +1,8 @@
+LilShot Reanimated web hotfix
+
+يصلح الخطأ:
+useAnimatedStyle was used without a dependency array or Babel plugin
+
+التثبيت:
+unzip -o ~/lilshot-reanimated-web-hotfix.zip -d .
+npm run dev -- --force
